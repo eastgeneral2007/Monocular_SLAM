@@ -16,7 +16,7 @@ public:
     virtual void process(DataManager& data) override;
 
     // estimate pose, given two frame, estimate R, T
-    void poseEstimation(Frame f1, Frame f2);
+    cv::Mat poseEstimation(Frame f1, Frame f2);
 
     // track local map
     void trackLocalMap(DataManager & data);

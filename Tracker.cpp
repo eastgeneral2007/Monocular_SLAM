@@ -3,3 +3,7 @@
 //
 
 #include "Tracker.h"
+#include "Util.h"
+cv::Mat Tracker::poseEstimation (Frame f1, Frame f2) {
+    return Util::ComputeF(f1, f2);
+}

@@ -6,7 +6,17 @@
 #define MONOCULAR_SLAM_LOCALMAPPER_H
 
 
-class LocalMapper {
+#include "ProcessingEngine.h"
+
+class LocalMapper : public ProcessingEngine{
+public:
+    // Constructor
+    LocalMapper();
+
+    // localMapper main function
+    virtual void process(DataManager& data) override;
+
+
 
 };
 
