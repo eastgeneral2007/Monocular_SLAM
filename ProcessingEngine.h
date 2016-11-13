@@ -17,11 +17,16 @@ class ProcessingEngine {
 public:
 	ProcessingEngine(string name):name(name) {}
 	virtual void init() {}
-	virtual bool validationCheck() { return true; }
-	virtual void process(DataManager& data) = 0;
 	virtual void finish() {}
 	virtual void destroy() {}
 	virtual ~ProcessingEngine() {}
+public:
+	// will be called by batch processing pipeline
+	virtual void process(DataManager& data) {}
+	virtual bool validationCheck(DataManager& data) { return true; }
+	// will be called by fused processing pipeline
+	virtual void process(DataManager& data, Frame& frame) {}
+	virtual bool validationCheck(DataManager& data, Frame& frame) { return true; }
 public:
 	string name;
 };
