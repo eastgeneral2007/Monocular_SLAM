@@ -22,10 +22,10 @@ public:
 
 public:
     // Constructor
-    LocalMapper(const string &name, KeyFrame *current_keyframe, DataManager &data_reference);
+    LocalMapper(const string &name, DataManager &data_reference);
 
     // localMapper main function
-    virtual void process(DataManager& data) override;
+    virtual void process(DataManager& data) {}
 
     bool CheckNewKeyFrames();
 

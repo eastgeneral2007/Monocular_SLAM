@@ -9,7 +9,7 @@
 #include "DataManager.h"
 #include <set>
 
-class LoopCloser : ProcessingEngine{
+class LoopCloser : public ProcessingEngine{
 public:
     typedef pair<set<KeyFrame*>,int> consistent_group;
 
@@ -31,6 +31,9 @@ public:
 public:
     // Constructor
     LoopCloser(const string &name, DataManager &data_reference);
+
+    // loopCloser main function
+    virtual void process(DataManager& data) override {}
 
     void RunGlobalBundleAdjustment(unsigned long n_loop_kf);
 

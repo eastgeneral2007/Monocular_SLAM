@@ -40,7 +40,7 @@ public:
     FrameMeta meta;
 
     // Frame info, pixel info
-    RawBuffer frame;
+    RawBuffer frameBuffer;
 
     // Relative pose, camera centre
     cv::Mat R_relative;
