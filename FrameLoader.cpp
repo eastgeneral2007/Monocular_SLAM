@@ -1,3 +1,11 @@
+//
+// FrameLoader.cpp
+//
+// Frame loader loaded all the frames from the directory
+// and feed them into frames.
+//
+// @Yu
+
 #include "FrameLoader.h"
 
 bool has_suffix(const string& s, const string& suffix)
@@ -42,9 +50,9 @@ void loadImgFileList(string directory, int begin_frame, int end_frame, DataManag
         meta.timestamp=imgNamelist[i].meta.timestamp;
         meta.framename=imgNamelist[i].meta.framename;
         meta.frameID=i;
-        f.frame=imread(imgNamelist[i].meta.framename, CV_LOAD_IMAGE_UNCHANGED);
-        imshow("frame", f.frame);
-        waitKey();
+        f.frameBuffer=imread(imgNamelist[i].meta.framename, CV_LOAD_IMAGE_UNCHANGED);
+        imshow("frame", f.frameBuffer);
+        waitKey(40);
         data.frames.push_back(f);
     }
 }
