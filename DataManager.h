@@ -10,8 +10,8 @@
 #ifndef MONOCULAR_SLAM_DATA_MANAGER_H
 #define MONOCULAR_SLAM_DATA_MANAGER_H
 
-#include<stdio.h>
-#include<cstdlib>
+#include <stdio.h>
+#include <cstdlib>
 #include <string.h>
 #include <fstream>
 #include <iostream>
@@ -30,11 +30,6 @@ using namespace cv;
 class DataManager{
 public:
     vector<Frame> frames;
-    vector<Point3d> total_points;
-    void loadImgFileList(string directory, int begin_frame, int end_frame);
-    Frame parseImgRawFileName(string directory, string filename);
 };
 
-bool has_suffix(const string& s, const string& suffix);
-
-#endif //MONOCULAR_SLAM_DATA_MANAGER_H
+#endif
