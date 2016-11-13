@@ -10,15 +10,7 @@
 #ifndef MONOCULAR_SLAM_DATA_MANAGER_H
 #define MONOCULAR_SLAM_DATA_MANAGER_H
 
-#include <stdio.h>
-#include <cstdlib>
-#include <string.h>
-#include <fstream>
-#include <iostream>
-#include <math.h>
-#include <vector>
-#include <time.h>
-#include <dirent.h>
+#include "Common.h"
 #include "Frame.h"
 #include "opencv2/calib3d/calib3d.hpp"
 #include "opencv2/highgui/highgui.hpp"

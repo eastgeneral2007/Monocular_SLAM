@@ -9,14 +9,13 @@
 
 #include <iostream>
 
-#include "opencv2/calib3d/calib3d.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
+#include "CommonCV.h"
 
 #include "AppConfig.h"
 #include "DataManager.h"
 #include "Pipeline.h"
 #include "FrameLoader.h"
+#include "ORBFeatureExtractor.h"
 
 using namespace std;
 using namespace cv;
@@ -29,12 +28,21 @@ int main(int argc, char **argv) {
 	// initialize a data manager
 	DataManager dm;
 
-	// build the ORB SLAM pipeline
-	ProcessingPipeline ORBSlam;
-	ORBSlam.addStage(new FrameLoader(config.inputDirectory, 0, 20));
+	// build pipeline
+	BatchProcessingPipeline dataLoader;
+	dataLoader.addStage(new FrameLoader(config.inputDirectory, 0, 20));
 	
-	// start processing
-	ORBSlam.process(dm);
+	FusedProcessingPipeline ORBSlam;
+	ORBSlam.addStage(new ORBFeatureExtractor());
+	
+	// loading data
+	dataLoader.process(dm);
+	
+	// launch ORB-slam
+	vector<Frame>& frames = dm.frames;
+	for (int i=0; i<frames.size(); i++) {
+		ORBSlam.process(dm, frames[i]);
+	}
 
     return 0;
 }

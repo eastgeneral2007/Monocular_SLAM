@@ -21,8 +21,8 @@ using namespace cv;
 
 struct Feature
 {
-    Point2d position;
-    vector<unsigned char> descriptor;
+    Point2f position;  
+    Mat descriptor;    // for ORB, this contains 32 elements
 };
 
 struct FrameMeta
