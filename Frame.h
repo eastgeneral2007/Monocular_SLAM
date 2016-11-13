@@ -14,6 +14,7 @@
 #include "opencv2/calib3d/calib3d.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
+#include "MapPoint.h"
 
 using namespace std;
 using namespace cv;
@@ -38,11 +39,20 @@ public:
     // Frame Meta Info
     FrameMeta meta;
 
-    // Frame info
-    RawBuffer frameBuffer;
+    // Frame info, pixel info
+    RawBuffer frame;
+
+    // Relative pose, camera centre
+    cv::Mat R_relative;
+    cv::Mat T_relative;
+    cv::Mat camera_centre;
+    cv::Mat camera_pose; // R|T
 
     // features
     vector<Feature> features;
+
+    // mapPoints associated to feature points, NULL if no association
+    std::vector<MapPoint*> feature_to_mappoints;
 
     bool operator < (const Frame & frameB) const {
         return frameB.meta.timestamp > meta.timestamp;
