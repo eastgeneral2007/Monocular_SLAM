@@ -19,7 +19,7 @@ public:
 	begin_frame(begin_frame),
 	end_frame(end_frame) {}
 	
-	virtual void process(DataManager& data);
+	virtual void process(DataManager& data) override;
 private:
 	string directory;
 	int begin_frame;
