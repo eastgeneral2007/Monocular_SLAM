@@ -17,8 +17,8 @@ class ORBFeatureExtractor: public ProcessingEngine
 {
 public:
 	ORBFeatureExtractor():ProcessingEngine("ORBFeatureExtractor") {}
-	virtual void process(DataManager& data, Frame& frame);
-	virtual bool validationCheck(DataManager& data, Frame& frame);
+	virtual void process(DataManager& data, Frame& frame) override;
+	virtual bool validationCheck(DataManager& data, Frame& frame) override;
 private:
 	OrbFeatureDetector detector;
 	OrbDescriptorExtractor extractor;
