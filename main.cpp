@@ -15,19 +15,26 @@
 
 #include "AppConfig.h"
 #include "DataManager.h"
+#include "Pipeline.h"
+#include "FrameLoader.h"
 
 using namespace std;
 using namespace cv;
-
-static string input_stream_directory;
 
 int main(int argc, char **argv) {
 
 	AppConfig config;
 	config = parseArgs(argc, argv);
 
-    DataManager dm;
-    dm.loadImgFileList(config.inputDirectory, 0, 20);
+	// initialize a data manager
+	DataManager dm;
+
+	// build the ORB SLAM pipeline
+	ProcessingPipeline ORBSlam;
+	ORBSlam.addStage(new FrameLoader(config.inputDirectory, 0, 20));
+	
+	// start processing
+	ORBSlam.process(dm);
 
     return 0;
 }

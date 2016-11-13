@@ -3,19 +3,25 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/KeyFrame.cpp" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/DataManager.h" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/Frame.cpp" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/CMakeLists.txt" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/FrameLoader.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/Util.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/Tracker.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/CMakeLists.txt" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/LocalMapper.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/AppConfig.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/AppConfig.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/KeyFrame.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/Tracker.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/MapPoint.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/LocalMapper.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/MapPoint.h" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/main.cpp" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/AppConfig.cpp" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/DataManager.cpp" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/Frame.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/Util.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/main.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/Pipeline.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/FrameLoader.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/Frame.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/ProcessingEngine.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/DataManager.h" isTestSource="false" />
     </content>
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module-library">

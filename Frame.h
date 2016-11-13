@@ -1,14 +1,15 @@
 //
+// Frame.h
+// A central structure for storing per-frame data. 
 //
-// Monocular SLAM
-// Following the pipeline of ORB_SLAM with optimisation framework implemented in OPT
+// The design pattern is called CAS(Central Commmon Analysis) where 
+// processing  modules in different stages of the work flow generate 
+// and feed the analysis result into this sturct.
 //
-// Xiaohan Jin, Yifan Xing, Yu Mao @ CMU
-// 11/01/2016
-//
+// @Yu
 
-#ifndef MONOCULAR_SLAM_FRAME_H
-#define MONOCULAR_SLAM_FRAME_H
+#ifndef FRAME_H
+#define FRAME_H
 
 #include "opencv2/calib3d/calib3d.hpp"
 #include "opencv2/highgui/highgui.hpp"
@@ -17,58 +18,35 @@
 using namespace std;
 using namespace cv;
 
-class Frame {
-public:
-    // Frame info
-    Mat frame;
+struct Feature
+{
+    Point2d position;
+    vector<unsigned char> descriptor;
+};
+
+struct FrameMeta
+{
     double timestamp;
     int frameID;
     string framename;
-    vector<pair<Point3d, int>> current_points;
+};
 
-    // Calibration matrix and OpenCV distortion parameters.
-    cv::Mat mK;
-    static float fx;
-    static float fy;
-    static float cx;
-    static float cy;
-    static float invfx;
-    static float invfy;
-    Mat mDistCoef;
+typedef Mat RawBuffer;
 
-    // Camera pose.
-    Mat mTcw;
+struct Frame {
+public:
+    // Frame Meta Info
+    FrameMeta meta;
 
-    // Number of KeyPoints.
-    int N;
-    vector<cv::KeyPoint> mvKeys, mvKeysRight;
-    vector<cv::KeyPoint> mvKeysUn;
+    // Frame info
+    RawBuffer frame;
 
-    /*
-    // Bag of Words Vector structures.
-    DBoW2::BowVector mBowVec;
-    DBoW2::FeatureVector mFeatVec;
+    // features
+    vector<Feature> features;
 
-    // Vocabulary used for relocalization.
-    ORBVocabulary* mpORBvocabulary;
-    ORBextractor* mpORBextractorLeft;
-    */
-
-    // ORB descriptor, each row associated to a keypoint.
-    Mat mDescriptors, mDescriptorsRight;
-
-    // Map points associated to keypoints, NULL pointer if no association.
-    vector<pair<Point3d, int>> mvpMapPoints;
-
-    // Reference Keyframe.
-    Frame* mpReferenceKF;
-
-    void ExtractORB(int flag, const cv::Mat &im);
-    bool operator < (const Frame & frameB) const
-    {
-        return frameB.timestamp > timestamp;
+    bool operator < (const Frame & frameB) const {
+        return frameB.meta.timestamp > meta.timestamp;
     }
 };
 
-
-#endif //MONOCULAR_SLAM_FRAME_H
+#endif
