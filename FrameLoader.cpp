@@ -1,3 +1,11 @@
+//
+// FrameLoader.cpp
+//
+// Frame loader loaded all the frames from the directory
+// and feed them into frames.
+//
+// @Yu
+
 #include "FrameLoader.h"
 
 bool has_suffix(const string& s, const string& suffix)
