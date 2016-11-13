@@ -24,16 +24,21 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "KeyFrame.h"
+#include "MapPoint.h"
 
 using namespace std;
 using namespace cv;
 
 class DataManager{
 public:
+    // camera intrinsics
+    cv::Mat camera_intrinsics;
+
+    // each original frame object read in and processed
     vector<Frame> frames;
 
-    // each frames' reference frame
-    vector<KeyFrame*> keyframes;
+    // each frames' reference KeyFrame
+    vector<KeyFrame*> reference_keyframes;
 
     // each frames' Pose
     vector<cv::Mat> relative_frame_poses;
@@ -44,6 +49,15 @@ public:
 
     // indicate if last frame processed, so that loop_mapper and loop_closer will be fired
     bool new_frame_inserted;
+    // last new key frame inserted
+    KeyFrame last_new_key_frame;
+
+    // The following is for Map
+    vector<MapPoint*> all_map_points;
+    vector<KeyFrame*> all_keyframes;
+    vector<MapPoint*> reference_map_points;
+
+
 
 };
 

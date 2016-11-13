@@ -19,10 +19,10 @@ public:
 
     // util function for optimisation
     void static BundleAdjustment(const std::vector<KeyFrame*> &keyframes, const std::vector<MapPoint*> &map_points,
-                                 int n_iterations = 5, bool *pb_stop_flag= NULL, const unsigned long n_loop_KF=0,
+                                 int n_iterations = 5, bool *pb_stop_flag= NULL, const unsigned long n_loop_kf=0,
                                  const bool b_robust = true);
 
-    void static GlobalBundleAdjustemnt(DataManager & data, int n_iterations = 5, bool *pb_stop_flag= NULL, const unsigned long n_loop_KF=0,
+    void static GlobalBundleAdjustemnt(DataManager & data, int n_iterations = 5, bool *pb_stop_flag= NULL, const unsigned long n_loop_kf=0,
                                        const bool b_robust = true);
 
     void static LocalBundleAdjustment(KeyFrame* keyframe, bool *pb_stop_flag, DataManager & data);

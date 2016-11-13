@@ -3,3 +3,7 @@
 //
 
 #include "LoopCloser.h"
+
+
+LoopCloser::LoopCloser(const string &name, DataManager &data_reference) : ProcessingEngine(name),
+                                                                          data_reference(data_reference) {}

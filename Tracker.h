@@ -10,29 +10,33 @@
 
 class Tracker : public ProcessingEngine{
 public:
-    Tracker();
+    // local reference to data manager, so that no need to have "DataManager & data" registration in all methods
+    DataManager & data_reference;
+public:
+    // Constructor
+    Tracker(const string &name, DataManager &data_reference);
 
-    // invoke detecter on two frames, estimated pose
+    // invoke detector on two frames, estimated pose
     virtual void process(DataManager& data) override;
 
     // estimate pose, given two frame, estimate R, T
     cv::Mat poseEstimation(Frame f1, Frame f2);
 
     // track local map
-    void trackLocalMap(DataManager & data);
+    void trackLocalMap();
 
     // detect if need to insert key frame
-    bool needDetectNewKeyFrame(DataManager & data);
+    bool needDetectNewKeyFrame();
 
     // insert new frame
-    void insertNewKeyFrame(DataManager & data);
+    void insertNewKeyFrame();
 
     // create initial map from the first two frames:
     // 1. create mapPoints, associate with KeyFrames
     // 2. Add to map in DataManager
     // 3. Update KeyFrame covisibility graph in DataManager
     // 4. run Global BA
-    void createInitialMap(DataManager & data);
+    void createInitialMap();
 
     // TODO: check relationship between localMapping Class and Map Class
 
