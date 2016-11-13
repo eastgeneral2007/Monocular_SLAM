@@ -4,5 +4,5 @@
 
 #include "LocalMapper.h"
 
-LocalMapper::LocalMapper(const string &name, KeyFrame *current_keyframe, DataManager &data_reference)
-        : ProcessingEngine(name), current_keyframe(current_keyframe), data_reference(data_reference) {}
+LocalMapper::LocalMapper(const string &name, DataManager &data_reference)
+        : ProcessingEngine("LocalMapper"), data_reference(data_reference) {}

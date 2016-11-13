@@ -15,7 +15,7 @@ public:
     cv::Mat static ComputeF12(KeyFrame* &f1, KeyFrame* &f2);
 
     // util function to compute F from two general frames (not KeyFrame)
-    static cv::Mat ComputeF(Frame f1, Frame f2);
+    cv::Mat static ComputeF(Frame f1, Frame f2);
 
     // util function for optimisation
     void static BundleAdjustment(const std::vector<KeyFrame*> &keyframes, const std::vector<MapPoint*> &map_points,

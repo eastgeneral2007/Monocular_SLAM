@@ -14,10 +14,10 @@ public:
     DataManager & data_reference;
 public:
     // Constructor
-    Tracker(const string &name, DataManager &data_reference);
+    Tracker(DataManager &data_reference);
 
     // invoke detector on two frames, estimated pose
-    virtual void process(DataManager& data) override;
+    virtual void process(DataManager& data) override {}
 
     // estimate pose, given two frame, estimate R, T
     cv::Mat poseEstimation(Frame f1, Frame f2);

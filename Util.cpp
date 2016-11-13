@@ -3,3 +3,7 @@
 //
 
 #include "Util.h"
+
+cv::Mat Util:: ComputeF(Frame f1, Frame f2) {
+    return cv::Mat();
+}
