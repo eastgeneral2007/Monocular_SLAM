@@ -7,10 +7,11 @@
 #include "opencv2/calib3d/calib3d.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
-#include "KeyFrame.h"
 
 using namespace std;
 using namespace cv;
+
+class KeyFrame;
 
 class MapPoint {
 
@@ -25,7 +26,6 @@ public:
     void addObservingKeyFrame(KeyFrame* key_frame, size_t index);
     size_t getObservingKeyFrame(KeyFrame* key_frame);
     void deleteObservingKeyFrame(KeyFrame*);
-
 
 };
 
