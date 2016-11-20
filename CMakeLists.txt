@@ -30,9 +30,7 @@ ENDIF()
 MESSAGE("Build type: " ${CMAKE_BUILD_TYPE})
 
 LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
-list(APPEND CMAKE_PREFIX_PATH
-        "${DEPENDENCIES_PATH}/Install/ep_eigen"
-        )
+LIST(APPEND CMAKE_PREFIX_PATH "${DEPENDENCIES_PATH}/Install/ep_eigen")
 
 find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -41,20 +39,9 @@ include_directories(
         ${PROJECT_SOURCE_DIR}
         ${PROJECT_SOURCE_DIR}/include
         ${EIGEN3_INCLUDE_DIR}
-        ${PROJECT_SOURCE_DIR}/Thirdparty/g2o
-)
+        ${PROJECT_SOURCE_DIR}/Thirdparty/g2o)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
-
-set(SOURCE_FILES main.cpp DataManager.h Frame.h AppConfig.cpp AppConfig.h KeyFrame.h KeyFrame.cpp MapPoint.h MapPoint.cpp Util.h Util.cpp ProcessingEngine.h Pipeline.h FrameLoader.cpp FrameLoader.h Tracker.cpp Tracker.h LocalMapper.cpp LocalMapper.h LoopCloser.cpp LoopCloser.h ORBFeatureExtractor.h ORBFeatureExtractor.cpp)
-#target_compile_features(${PROJECT_NAME} PUBLIC cxx_range_for)
-#target_compile_definitions(${PROJECT_NAME} PUBLIC -DCOMPILEDWITHC11)
-
+file(GLOB_RECURSE SOURCE_FILES "src/*.cpp" "src/*.h")
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
-target_link_libraries(${PROJECT_NAME}
-        ${OpenCV_LIBS}
-        ${EIGEN3_LIBS}
-        ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o${CMAKE_SHARED_LIBRARY_SUFFIX}
-        )
-
-
+target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} ${EIGEN3_LIBS} ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o${CMAKE_SHARED_LIBRARY_SUFFIX})
