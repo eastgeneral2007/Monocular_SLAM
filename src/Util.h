@@ -6,6 +6,7 @@
 #define MONOCULAR_SLAM_UTIL_H
 #include "KeyFrame.h"
 #include "DataManager.h"
+#include <vector>
 
 using namespace std;
 
@@ -26,6 +27,11 @@ public:
                                        const bool b_robust = true);
 
     void static LocalBundleAdjustment(KeyFrame* keyframe, bool *pb_stop_flag, DataManager & data);
+
+    // load temporary KeyFrames and MapPoints for testing
+    vector<KeyFrame> static loadKeyFrames(string key_frame_filename);
+    vector<MapPoint> static loadMapPointsAndAssociateKeyFrames(string map_points_filename, vector<KeyFrame>);
+
 
 
 
