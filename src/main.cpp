@@ -16,6 +16,7 @@
 #include "Pipeline.h"
 #include "FrameLoader.h"
 #include "ORBFeatureExtractor.h"
+#include "InitialCameraMotionEstimator.h"
 
 using namespace std;
 using namespace cv;
@@ -28,12 +29,14 @@ int main(int argc, char **argv) {
 	// initialize a data manager
 	DataManager dm;
 
-	// build pipeline
+	// Data loading
 	BatchProcessingPipeline dataLoader;
 	dataLoader.addStage(new FrameLoader(config.inputDirectory, 0, 20));
-	
+
+	// Pipeline Initialization
 	FusedProcessingPipeline ORBSlam;
 	ORBSlam.addStage(new ORBFeatureExtractor());
+	ORBSlam.addStage(new InitialCameraMotionEstimator());
 	
 	// loading data
 	dataLoader.process(dm);
@@ -41,7 +44,7 @@ int main(int argc, char **argv) {
 	// launch ORB-slam
 	vector<Frame>& frames = dm.frames;
 	for (int i=0; i<frames.size(); i++) {
-		ORBSlam.process(dm, frames[i]);
+		ORBSlam.process(dm, i);
 	}
 
     return 0;

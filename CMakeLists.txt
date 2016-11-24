@@ -42,14 +42,13 @@ include_directories(
         ${PROJECT_SOURCE_DIR}/Thirdparty/g2o)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
+
 # for Main
 file(GLOB_RECURSE SOURCE_FILES "src/*.cpp" "src/*.h")
 # for Unit Testing
 file(GLOB_RECURSE UNITTEST_FILES "UnitTest/*.cpp" "UnitTest/*.h")
 set(TESTING_SOURCES ${SOURCE_FILES})
 list (REMOVE_ITEM TESTING_SOURCES "${PROJECT_SOURCE_DIR}/src/main.cpp")
-
-#message("${TESTING_SOURCES}")
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} ${EIGEN3_LIBS} ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o${CMAKE_SHARED_LIBRARY_SUFFIX})

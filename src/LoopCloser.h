@@ -4,12 +4,12 @@
 
 #ifndef MONOCULAR_SLAM_LOOPCLOSER_H
 #define MONOCULAR_SLAM_LOOPCLOSER_H
-#include "ProcessingEngine.h"
+#include "ProcessingNode.h"
 #include <list>
 #include "DataManager.h"
 #include <set>
 
-class LoopCloser : public ProcessingEngine{
+class LoopCloser : public ProcessingNode{
 public:
     typedef pair<set<KeyFrame*>,int> consistent_group;
 
