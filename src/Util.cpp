@@ -95,7 +95,7 @@ void Util::BundleAdjustment(const std::vector<KeyFrame*> &keyframes, const std::
             // ignore if the observer is not in keyframe vertexes added
             if (!(keyframe_vertex_id_set.find(observer->id) == keyframe_vertex_id_set.end())) {
 
-                const cv::Point2f &pos = observer->features[feature_idx].position;
+                const cv::Point2f &pos = observer->features.positions[i];
 
                 Eigen::Matrix<double, 2, 1> obs;
                 obs << pos.x, pos.y;
