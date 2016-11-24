@@ -16,7 +16,17 @@ using namespace cv;
 
 class Converter {
 public:
-    static g2o::SE3Quat cvMatToSE3Quat(Mat mat);
+    // conversion between cv::Mat and g2o::SE3Quat
+    static g2o::SE3Quat cvMatToSE3Quat(const Mat mat);
+    static Mat SE3QuatToCvMat(const g2o::SE3Quat &SE3);
+
+    // conversion between cv::Mat and Eigen::Matrix<double,3,1>
+    static Mat vector3DToCvMat(const Eigen::Matrix<double,3,1> &m);
+    static Eigen::Matrix<double,3,1> cvMatToVector3d(const Mat mat);
+
+    // conversion between Eigen and cv Mat
+    static Mat eigenMatrixToCvMat(const Eigen::Matrix<double,4,4> &m);
+    static Eigen::Matrix<double,4,4> cvMatToEigenMatrix(const Mat mat);
 
 };
 

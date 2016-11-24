@@ -16,6 +16,7 @@ class KeyFrame;
 class MapPoint {
 
 public:
+    long unsigned int id; // identifier
     cv::Mat world_pos;// 3D world coordinate
     std::map<KeyFrame*, size_t> observer_to_index; // map of observing KeyFrame
     KeyFrame* reference_kf; // reference KF, the nearest one
