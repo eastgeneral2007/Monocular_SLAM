@@ -26,7 +26,7 @@ public:
     void trackLocalMap();
 
     // detect if need to insert key frame
-    bool needDetectNewKeyFrame();
+    bool needInsertNewKeyFrame();
 
     // insert new frame
     void insertNewKeyFrame();

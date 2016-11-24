@@ -27,6 +27,8 @@ public:
 
     void static LocalBundleAdjustment(KeyFrame* keyframe, bool *pb_stop_flag, DataManager & data);
 
+
+
 };
 
 
