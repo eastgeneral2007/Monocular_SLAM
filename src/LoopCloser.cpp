@@ -5,5 +5,5 @@
 #include "LoopCloser.h"
 
 
-LoopCloser::LoopCloser(const string &name, DataManager &data_reference) : ProcessingEngine(name),
+LoopCloser::LoopCloser(const string &name, DataManager &data_reference) : ProcessingNode(name),
                                                                           data_reference(data_reference) {}

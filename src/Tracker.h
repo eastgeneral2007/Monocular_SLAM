@@ -6,9 +6,9 @@
 #define MONOCULAR_SLAM_TRACKER_H
 
 
-#include "ProcessingEngine.h"
+#include "ProcessingNode.h"
 
-class Tracker : public ProcessingEngine{
+class Tracker : public ProcessingNode{
 public:
     // local reference to data manager, so that no need to have "DataManager & data" registration in all methods
     DataManager & data_reference;

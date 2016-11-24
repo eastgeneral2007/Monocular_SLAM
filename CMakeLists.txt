@@ -42,6 +42,6 @@ include_directories(
         ${PROJECT_SOURCE_DIR}/Thirdparty/g2o)
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
-file(GLOB_RECURSE SOURCE_FILES "src/*.cpp" "src/*.h")
+file(GLOB SOURCE_FILES "src/*.cpp" "src/*.h")
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} ${EIGEN3_LIBS} ${PROJECT_SOURCE_DIR}/Thirdparty/g2o/lib/libg2o${CMAKE_SHARED_LIBRARY_SUFFIX})

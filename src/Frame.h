@@ -19,10 +19,10 @@
 using namespace std;
 using namespace cv;
 
-struct Feature
+struct Features
 {
-    Point2f position;  
-    Mat descriptor;    // for ORB, this contains 32 elements
+    vector<Point2f> positions;
+    Mat descriptors;    // for ORB, each row is of size 32 (128 bit)
 };
 
 struct FrameMeta
@@ -49,7 +49,7 @@ public:
     cv::Mat camera_pose; // R|T
 
     // features
-    vector<Feature> features;
+    Features features;
 
     // mapPoints associated to feature points, NULL if no association
     std::vector<MapPoint*> feature_to_mappoints;

@@ -8,5 +8,5 @@ cv::Mat Tracker::poseEstimation (Frame f1, Frame f2) {
     return Util::ComputeF(f1, f2);
 }
 
-Tracker::Tracker(DataManager &data_reference) : ProcessingEngine("Tracker"),
+Tracker::Tracker(DataManager &data_reference) : ProcessingNode("Tracker"),
                                                                     data_reference(data_reference) {}

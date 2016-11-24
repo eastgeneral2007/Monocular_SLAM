@@ -11,14 +11,14 @@
 #define ORBFEATUREEXTRACTOR_H
 
 #include "CommonCV.h"
-#include "ProcessingEngine.h"
+#include "ProcessingNode.h"
 
-class ORBFeatureExtractor: public ProcessingEngine
+class ORBFeatureExtractor: public ProcessingNode
 {
 public:
-	ORBFeatureExtractor():ProcessingEngine("ORBFeatureExtractor") {}
-	virtual void process(DataManager& data, Frame& frame) override;
-	virtual bool validationCheck(DataManager& data, Frame& frame) override;
+	ORBFeatureExtractor():ProcessingNode("ORBFeatureExtractor") {}
+	virtual void process(DataManager& data, int frameIdx) override;
+	virtual bool validationCheck(DataManager& data, int frameIdx) override;
 private:
 	OrbFeatureDetector detector;
 	OrbDescriptorExtractor extractor;

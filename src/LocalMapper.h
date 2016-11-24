@@ -5,11 +5,11 @@
 #ifndef MONOCULAR_SLAM_LOCALMAPPER_H
 #define MONOCULAR_SLAM_LOCALMAPPER_H
 
-#include "ProcessingEngine.h"
+#include "ProcessingNode.h"
 #include <list>
 #include "DataManager.h"
 
-class LocalMapper : public ProcessingEngine{
+class LocalMapper : public ProcessingNode{
 public:
     std::list<KeyFrame*> new_keyframes;
 

@@ -10,8 +10,8 @@
 #include "Common.h"
 #include "ORBFeatureExtractor.h"
 
-void ORBFeatureExtractor::process(DataManager& data, Frame& frame) {
-
+void ORBFeatureExtractor::process(DataManager& data, int frameIdx) {
+	Frame &frame = data.frames[frameIdx];
 	RawBuffer frameBuffer = frame.frameBuffer;
 	std::vector<cv::KeyPoint> keypoints;
 	detector.detect(frameBuffer, keypoints);
@@ -19,18 +19,17 @@ void ORBFeatureExtractor::process(DataManager& data, Frame& frame) {
 	extractor.compute(frameBuffer, keypoints, descriptor);
 	for (int i=0; i<keypoints.size(); i++)
 	{
-		Feature feature;
-		feature.position = keypoints[i].pt;
-		feature.descriptor = descriptor.row(i);
+		frame.features.positions.push_back(keypoints[i].pt);
+		frame.features.descriptors = descriptor;
 	}
 
-	Mat visualization;
-	drawKeypoints(frameBuffer, keypoints,visualization, Scalar::all(-1), DrawMatchesFlags::DEFAULT);
-	imshow("Keypoint", visualization);
-	waitKey(40);
+	// Mat visualization;
+	// drawKeypoints(frameBuffer, keypoints,visualization, Scalar::all(-1), DrawMatchesFlags::DEFAULT);
+	// imshow("Keypoint", visualization);
+	// waitKey(40);
 }
 
-bool ORBFeatureExtractor::validationCheck(DataManager& data, Frame& frame) {
+bool ORBFeatureExtractor::validationCheck(DataManager& data, int frameIdx) {
 	return true;
 }
 

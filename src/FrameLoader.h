@@ -6,15 +6,15 @@
 //
 // @Yu
 
-#include "ProcessingEngine.h"
+#include "ProcessingNode.h"
 
-class FrameLoader: public ProcessingEngine
+class FrameLoader: public ProcessingNode
 {
 public:
 	FrameLoader(string directory, 
 				int begin_frame, 
 			    int end_frame):
-	ProcessingEngine("FrameLoader"), 
+	ProcessingNode("FrameLoader"), 
 	directory(directory),
 	begin_frame(begin_frame),
 	end_frame(end_frame) {}

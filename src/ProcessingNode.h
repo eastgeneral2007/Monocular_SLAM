@@ -1,32 +1,32 @@
 //
-// ProcessingEngine.h
+// ProcessingNode.h
 //
-// ProcessingEngine is is a single pipeline stage
+// ProcessingNode is is a single pipeline stage
 // doing a specific task. It generates analysis 
 // result and feed it into some data structs 
 // in the data manager.
 //
 // @Yu
 
-#ifndef PROCESSING_ENGINE
-#define PROCESSING_ENGINE
+#ifndef PROCESSING_NODE
+#define PROCESSING_NODE
 
 #include "DataManager.h"
 
-class ProcessingEngine {
+class ProcessingNode {
 public:
-	ProcessingEngine(string name):name(name) {}
+	ProcessingNode(string name):name(name) {}
 	virtual void init() {}
 	virtual void finish() {}
 	virtual void destroy() {}
-	virtual ~ProcessingEngine() {}
+	virtual ~ProcessingNode() {}
 public:
 	// will be called by batch processing pipeline
 	virtual void process(DataManager& data) {}
 	virtual bool validationCheck(DataManager& data) { return true; }
 	// will be called by fused processing pipeline
-	virtual void process(DataManager& data, Frame& frame) {}
-	virtual bool validationCheck(DataManager& data, Frame& frame) { return true; }
+	virtual void process(DataManager& data, int frameIdx) {}
+	virtual bool validationCheck(DataManager& data, int frameIdx) { return true; }
 public:
 	string name;
 };

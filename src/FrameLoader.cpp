@@ -51,8 +51,8 @@ void loadImgFileList(string directory, int begin_frame, int end_frame, DataManag
         meta.framename=imgNamelist[i].meta.framename;
         meta.frameID=i;
         f.frameBuffer=imread(imgNamelist[i].meta.framename, CV_LOAD_IMAGE_UNCHANGED);
-        imshow("frame", f.frameBuffer);
-        waitKey(40);
+        // imshow("frame", f.frameBuffer);
+        // waitKey(40);
         data.frames.push_back(f);
     }
 }

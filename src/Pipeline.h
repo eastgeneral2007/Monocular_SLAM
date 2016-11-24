@@ -11,7 +11,7 @@
 #define PROCESSING_PIPELINE_H
 
 #include "DataManager.h"
-#include "ProcessingEngine.h"
+#include "ProcessingNode.h"
 
 //
 // BaseProcessingPipeline
@@ -22,15 +22,15 @@
 class BaseProcessingPipeline
 {
 public:
-	vector <ProcessingEngine *> stages;
+	vector <ProcessingNode *> stages;
 
 public:
-	void addStage(ProcessingEngine *engine) {
+	void addStage(ProcessingNode *engine) {
 		stages.push_back(engine);
 	}
 
 	virtual ~BaseProcessingPipeline() {
-		for (ProcessingEngine* engine : stages) {
+		for (ProcessingNode* engine : stages) {
 			engine->destroy();
 			delete engine;
 		}
@@ -46,20 +46,20 @@ public:
 class FusedProcessingPipeline: public BaseProcessingPipeline
 {
 public:
-	void process(DataManager &data, Frame& frame) {
-
+	void process(DataManager &data, int frameIdx) {
+		
 		// initialize the engine
-		for (ProcessingEngine* engine : stages) {
+		for (ProcessingNode* engine : stages) {
 			engine->init();
 		}
 
 		// start the pipeline
-		for (ProcessingEngine* engine : stages) {
-			if (!engine->validationCheck(data, frame)) {
-				std::cout << "Engine [" << engine->name << "]: validation check failed."<< std::endl;
+		for (ProcessingNode* engine : stages) {
+			if (!engine->validationCheck(data, frameIdx)) {
+				std::cout << "Node [" << engine->name << "]: validation check failed."<< std::endl;
 				return;
 			}
-			engine->process(data, frame);
+			engine->process(data, frameIdx);
 		}
 	}
 
@@ -78,14 +78,14 @@ public:
 	void process(DataManager &data) {
 
 		// initialize the engine
-		for (ProcessingEngine* engine : stages) {
+		for (ProcessingNode* engine : stages) {
 			engine->init();
 		}
 
 		// start the pipeline
-		for (ProcessingEngine* engine : stages) {
+		for (ProcessingNode* engine : stages) {
 			if (!engine->validationCheck(data)) {
-				std::cout << "Engine [" << engine->name << "]: validation check failed."<< std::endl;
+				std::cout << "Node [" << engine->name << "]: validation check failed."<< std::endl;
 				return;
 			}
 			engine->process(data);
