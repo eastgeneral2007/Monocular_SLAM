@@ -23,6 +23,9 @@ class MapPoint;
 class KeyFrame: public Frame {
 
 public:
+    // ID
+    long unsigned int id;
+
     // neighbouring KeyFrames
     vector<MapPoint*> map_points;
     vector<KeyFrame*> connected_keyframes;
