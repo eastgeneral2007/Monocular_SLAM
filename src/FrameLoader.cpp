@@ -6,6 +6,7 @@
 //
 // @Yu
 
+#include "DataManager.h"
 #include "FrameLoader.h"
 
 bool has_suffix(const string& s, const string& suffix)
@@ -57,6 +58,23 @@ void loadImgFileList(string directory, int begin_frame, int end_frame, DataManag
     }
 }
 
-void FrameLoader::process(DataManager& data) {
+void loadCameraIntrinsics(DataManager& data) {
+    // TODO: implement a proper loader in the future
+    static float fx = 517.306408;
+    static float fy = 516.469215;
+    static float cx = 318.643040;
+    static float cy = 255.313989;
+
+    Mat& camera_intrinsics = data.camera_intrinsics;
+    camera_intrinsics = Mat::zeros(3, 3, CV_64F);
+    camera_intrinsics.at<double>(0,0) = fx;
+    camera_intrinsics.at<double>(0,2) = cx;
+    camera_intrinsics.at<double>(1,1) = fy;
+    camera_intrinsics.at<double>(1,2) = cy;
+    camera_intrinsics.at<double>(2,2) = 1.f;
+}
+
+void FrameLoader::load(DataManager& data) {
+    loadCameraIntrinsics(data);
 	loadImgFileList(directory, begin_frame, end_frame, data);
 }

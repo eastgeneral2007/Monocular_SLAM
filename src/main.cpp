@@ -30,16 +30,13 @@ int main(int argc, char **argv) {
 	DataManager dm;
 
 	// Data loading
-	BatchProcessingPipeline dataLoader;
-	dataLoader.addStage(new FrameLoader(config.inputDirectory, 0, 20));
+	FrameLoader frameLoader(config.inputDirectory, 0, 20);
+	frameLoader.load(dm);
 
 	// Pipeline Initialization
-	FusedProcessingPipeline ORBSlam;
+	ProcessingPipeline ORBSlam;
 	ORBSlam.addStage(new ORBFeatureExtractor());
 	ORBSlam.addStage(new InitialCameraMotionEstimator());
-	
-	// loading data
-	dataLoader.process(dm);
 	
 	// launch ORB-slam
 	vector<Frame>& frames = dm.frames;

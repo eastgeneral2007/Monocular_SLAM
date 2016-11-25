@@ -21,7 +21,7 @@ using namespace cv;
 
 struct Features
 {
-    vector<Point2f> positions;
+    vector<Point2d> positions;
     Mat descriptors;    // for ORB, each row is of size 32 (128 bit)
 };
 
@@ -42,11 +42,8 @@ public:
     // Frame info, pixel info
     RawBuffer frameBuffer;
 
-    // Relative pose, camera centre
-    cv::Mat R_relative;
-    cv::Mat T_relative;
-    cv::Mat camera_centre;
-    cv::Mat camera_pose; // R|T
+    // Relative R|t matrix
+    cv::Mat Rt;
 
     // features
     Features features;

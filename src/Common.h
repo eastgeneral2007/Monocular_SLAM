@@ -23,5 +23,6 @@
 
 using namespace std;
 
+#define EPSILON (1e-03)
 
 #endif

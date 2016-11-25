@@ -13,13 +13,16 @@
 #define INITIALCAMERAMOTIONESTIMATOR_H
 
 #include "ProcessingNode.h"
+#include "CommonCV.h"
 
 class InitialCameraMotionEstimator: public ProcessingNode
 {
 public:
-	InitialCameraMotionEstimator():ProcessingNode("InitialCameraMotionEstimator") {}
+	InitialCameraMotionEstimator():ProcessingNode("InitialCameraMotionEstimator"), matcher(NORM_HAMMING) {}
 	virtual void process(DataManager& data, int frameIdx);
 	virtual bool validationCheck(DataManager& data, int frameIdx);
+private:
+	BFMatcher matcher;
 };
 
 #endif

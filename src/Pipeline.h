@@ -43,7 +43,7 @@ public:
 // FusedProcessingPipeline process the data
 // in a frame by frame manner.
 // 
-class FusedProcessingPipeline: public BaseProcessingPipeline
+class ProcessingPipeline: public BaseProcessingPipeline
 {
 public:
 	void process(DataManager &data, int frameIdx) {
@@ -63,34 +63,6 @@ public:
 		}
 	}
 
-};
-
-//
-// BatchProcessingPipeline
-//
-// BatchProcessingPipeline is used for pre-processing
-// and post-processing steps such as data loading and
-// initialization.
-//
-class BatchProcessingPipeline: public BaseProcessingPipeline
-{
-public:
-	void process(DataManager &data) {
-
-		// initialize the engine
-		for (ProcessingNode* engine : stages) {
-			engine->init();
-		}
-
-		// start the pipeline
-		for (ProcessingNode* engine : stages) {
-			if (!engine->validationCheck(data)) {
-				std::cout << "Node [" << engine->name << "]: validation check failed."<< std::endl;
-				return;
-			}
-			engine->process(data);
-		}
-	}
 };
 
 #endif
