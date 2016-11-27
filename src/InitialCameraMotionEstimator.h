@@ -15,6 +15,8 @@
 #include "ProcessingNode.h"
 #include "CommonCV.h"
 
+// #define DEBUG_INITIALCAMERAMOTIONESTIMATOR
+
 class InitialCameraMotionEstimator: public ProcessingNode
 {
 public:

@@ -45,6 +45,11 @@ public:
     // Relative R|t matrix
     cv::Mat Rt;
 
+    // do not refer camera_pose
+    // because I am considering
+    // removing it later.
+    cv::Mat camera_pose;
+
     // features
     Features features;
 
