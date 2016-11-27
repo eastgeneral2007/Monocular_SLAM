@@ -19,9 +19,9 @@ void UnitTestg2o::unitTestCvMatToG2oSE3() {
     cout << "R = " << endl << " " << R << endl << endl;
     cout << "T = " << endl << " " << T << endl << endl;
 
-    Mat pose = Mat::zeros(4,4, CV_64F);
+    Mat pose = Mat::zeros(3,4, CV_64F);
     R.copyTo(pose.colRange(0,3).rowRange(0,3)); // exclusive range second parameter
-    pose.at<double>(3,3) = 1.0;
+//    pose.at<double>(3,3) = 1.0;
     T.copyTo(pose.colRange(3,4).rowRange(0,3));
     cout << "pose = " << endl << " " << pose << endl << endl;
 

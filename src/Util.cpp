@@ -46,7 +46,7 @@ void Util::BundleAdjustment(const std::vector<KeyFrame*> &keyframes, const std::
         KeyFrame * this_kf = keyframes[i];
         g2o::VertexSE3Expmap * keyframe_vertex = new g2o::VertexSE3Expmap();
 
-        keyframe_vertex->setEstimate(Converter::cvMatToSE3Quat(this_kf->camera_pose));
+        keyframe_vertex->setEstimate(Converter::cvMatToSE3Quat(this_kf->Rt));
         keyframe_vertex->setId(this_kf->id);
         keyframe_vertex->setFixed(this_kf->id ==0);
         optimizer.addVertex(keyframe_vertex);
@@ -132,28 +132,24 @@ void Util::BundleAdjustment(const std::vector<KeyFrame*> &keyframes, const std::
     // Recover optimized data
 
     //Keyframes
-    for(int i=0; i<keyframes.size(); i++)
-    {
+    for(int i=0; i<keyframes.size(); i++) {
         KeyFrame* this_keyframe = keyframes[i];
         g2o::VertexSE3Expmap* keyframe_vertex = static_cast<g2o::VertexSE3Expmap*>(optimizer.vertex(this_keyframe->id));
         g2o::SE3Quat SE3quat = keyframe_vertex->estimate();
-        if(n_loop_kf==0)
-        {
-            this_keyframe->camera_pose = Converter::SE3QuatToCvMat(SE3quat);
+        if(n_loop_kf==0) {
+            this_keyframe->Rt = Converter::SE3QuatToCvMat(SE3quat);
         }
         // TODO: check if needs to maintain different poses for n_loop_kf != 0, loop points
     }
 
     //Map Points
-    for(int i=0; i<map_points.size(); i++)
-    {
+    for(int i=0; i<map_points.size(); i++) {
         if(optimized[i]) {
             MapPoint* this_map_point = map_points[i];
 
             g2o::VertexSBAPointXYZ* point_vertex = static_cast<g2o::VertexSBAPointXYZ*>(optimizer.vertex(this_map_point->id+key_frame_max_id+1));
 
-            if(n_loop_kf==0)
-            {
+            if(n_loop_kf==0) {
                 this_map_point->world_pos = Converter::vector3DToCvMat(point_vertex->estimate());
             }
             // TODO: check if needs to maintain different 3D coords for n_loop_kf != 0, loop points

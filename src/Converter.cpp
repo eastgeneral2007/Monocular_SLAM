@@ -5,6 +5,7 @@
 
 // SE3Quat and Mat
 g2o::SE3Quat Converter::cvMatToSE3Quat (const Mat mat) {
+    // mat is either 4 by 4 or 3 by 4
     Eigen::Matrix<double,3,3> R;
     R << mat.at<double>(0,0), mat.at<double>(0,1), mat.at<double>(0,2),
             mat.at<double>(1,0), mat.at<double>(1,1), mat.at<double>(1,2),
@@ -16,8 +17,16 @@ g2o::SE3Quat Converter::cvMatToSE3Quat (const Mat mat) {
 }
 
 Mat Converter::SE3QuatToCvMat(const g2o::SE3Quat &SE3) {
+    // convert to 3 by 4 pose matrix
     Eigen::Matrix<double,4,4> eigen_mat = SE3.to_homogeneous_matrix();
-    return eigenMatrixToCvMat(eigen_mat);
+    // normalize by eigen_mat(3,3)
+    eigen_mat = eigen_mat/eigen_mat(3,3);
+    cv::Mat cv_mat(3,4,CV_64F);
+    for(int i=0;i<3;i++)
+        for(int j=0; j<4; j++)
+            cv_mat.at<double>(i,j)=eigen_mat(i,j);
+
+    return cv_mat.clone();
 }
 
 
