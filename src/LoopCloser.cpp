@@ -5,8 +5,7 @@
 #include "LoopCloser.h"
 
 
-LoopCloser::LoopCloser(const string &name, DataManager &data_reference) : ProcessingNode(name),
-                                                                          data_reference(data_reference) { }
+LoopCloser::LoopCloser(const string &name, DataManager &data_reference) : ProcessingNode(name), data_reference(data_reference) { }
 
 void LoopCloser::Run()
 {
@@ -33,11 +32,11 @@ bool LoopCloser::DetectLoop()
             Mat descriptors2 = frames[j].features.descriptors;
             NBestMatches(descriptors1, descriptors2, n, distances, indices);
             int count = 0;
-            for(unsigned int di=0; di<dists.size(); ++di)
+            for(unsigned int di=0; di<distances.size(); ++di)
             {
-                for(unsigned int dj=0; dj<dists.at(i).size(); ++dj)
+                for(unsigned int dj=0; dj<distances.at(i).size(); ++dj)
                 {
-                    if(dists.at(di).at(dj) < dist_thr)
+                    if(distances.at(di).at(dj) < dist_thr)
                         count ++;
                 }
             }
