@@ -11,9 +11,9 @@
 
 class LocalMapper : public ProcessingNode{
 public:
-    std::list<KeyFrame*> new_keyframes;
+    std::list<Frame*> new_frames;
 
-    KeyFrame* current_keyframe;
+    Frame* current_frame;
 
     std::list<MapPoint*> recent_added_map_points;
 
@@ -27,9 +27,9 @@ public:
     // localMapper main function
     virtual void process(DataManager& data) {}
 
-    bool CheckNewKeyFrames();
+    bool CheckNewFrames();
 
-    void ProcessNewKeyFrame();
+    void ProcessNewFrame();
 
     void CreateNewMapPoints();
 
@@ -39,7 +39,7 @@ public:
     void SearchInNeighbors();
 
     // remove redundant key frames
-    void KeyFrameCulling();
+    void FrameCulling();
 
 
 };

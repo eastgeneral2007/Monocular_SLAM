@@ -11,10 +11,29 @@
 
 class LoopCloser : public ProcessingNode{
 public:
+<<<<<<< HEAD
     // local reference to data manager, so that no need to have "DataManager & data" registration in all methods
     DataManager & data_reference;
 
     int LastLoopKFid;
+=======
+    typedef pair<set<Frame*>,int> consistent_group;
+
+    // local reference to data manager, so that no need to have "DataManager & data" registration in all methods
+    DataManager & data_reference;
+
+    // The following attributes may or may not be needed depending on our implementation
+    std::list<Frame*> mlpLoopFrameQueue;
+
+    Frame* current_kf;
+    Frame* matched_kf;
+
+    std::vector<consistent_group> consistent_groups;
+    std::vector<Frame*> enough_consistent_candidates;
+    std::vector<Frame*> current_connected_kfs;
+    std::vector<MapPoint*> current_matched_points;
+    std::vector<MapPoint*> Loop_map_points;
+>>>>>>> f99573c7ad1b52154e270c6340f5336202d38187
 
 public:
     // Constructor
@@ -25,7 +44,13 @@ public:
 
     void RunGlobalBundleAdjustment(unsigned long n_loop_kf);
 
+<<<<<<< HEAD
     void Run();
+=======
+    void InsertFrame(Frame *keyframe);
+
+    bool CheckNewFrames();
+>>>>>>> f99573c7ad1b52154e270c6340f5336202d38187
 
     bool DetectLoop();
 

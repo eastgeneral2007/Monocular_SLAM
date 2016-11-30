@@ -23,7 +23,8 @@ bool LoopCloser::DetectLoop()
     vector<vector<float>> distances;
     vector<vector<int>> indices;
     int n = 4;
-
+    int count_max = 0;
+    float dist_thr = 0.05;
     for (int i = 0; i< frames.size()-1;i++)
     {
         Mat descriptors1 = frames[i].features.descriptors;
@@ -31,7 +32,19 @@ bool LoopCloser::DetectLoop()
         {
             Mat descriptors2 = frames[j].features.descriptors;
             NBestMatches(descriptors1, descriptors2, n, distances, indices);
-
+            int count = 0;
+            for(unsigned int di=0; di<dists.size(); ++di)
+            {
+                for(unsigned int dj=0; dj<dists.at(i).size(); ++dj)
+                {
+                    if(dists.at(di).at(dj) < dist_thr)
+                        count ++;
+                }
+            }
+            if (count > count_max)
+            {
+                printf("Loop candidates: &d, &d", &i, &j);
+            }
         }
     }
     return true;
