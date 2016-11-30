@@ -1,3 +1,8 @@
+//
+// CommonMath.h
+//
+// @Yu
+
 #ifndef COMMONMATH_H
 #define COMMONMATH_H
 

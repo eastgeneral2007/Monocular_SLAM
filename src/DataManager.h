@@ -49,8 +49,6 @@ public:
     vector<KeyFrame*> all_keyframes;
     vector<MapPoint*> reference_map_points;
 
-
-
 };
 
 #endif

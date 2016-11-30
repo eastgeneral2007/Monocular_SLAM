@@ -1,3 +1,8 @@
+//
+// CommonMath.cpp
+//
+// @Yu
+
 #include "CommonMath.h"
 
 void TakeSVD(const Mat_<double>& E, Mat& svd_u, Mat& svd_vt, Mat& svd_w) {

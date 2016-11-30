@@ -48,18 +48,19 @@ class ProcessingPipeline: public BaseProcessingPipeline
 public:
 	void process(DataManager &data, int frameIdx) {
 		
-		// initialize the engine
-		for (ProcessingNode* engine : stages) {
-			engine->init();
+		if(frameIdx == 0) {
+			for (ProcessingNode* node : stages) {
+				node->init();
+			}
 		}
 
-		// start the pipeline
-		for (ProcessingNode* engine : stages) {
-			if (!engine->validationCheck(data, frameIdx)) {
-				std::cout << "Node [" << engine->name << "]: validation check failed."<< std::endl;
+		for (ProcessingNode* node : stages) {
+			if (!node->validationCheck(data, frameIdx)) {
+				cout << "Node [" << node->name << "]: validation check failed."<< endl;
 				return;
 			}
-			engine->process(data, frameIdx);
+			// cout << node->name << " is processing frame #" << frameIdx << endl;
+			node->process(data, frameIdx);
 		}
 	}
 

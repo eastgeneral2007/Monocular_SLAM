@@ -1,3 +1,14 @@
+//
+// InitialCameraMotionEstimator.cpp
+//
+// This stage performs camera motion estimation
+// for each frame based on the feature matching 
+// with the previous frame. An initial camera
+// matrix, which transforms from word space to
+// camera space, is estimated. 
+//
+// @Yu
+
 #include "InitialCameraMotionEstimator.h"
 #include "CommonMath.h"
 #ifdef DEBUG_INITIALCAMERAMOTIONESTIMATOR

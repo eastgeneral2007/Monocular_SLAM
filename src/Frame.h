@@ -22,7 +22,7 @@ using namespace cv;
 struct Features
 {
     vector<Point2d> positions;
-    Mat descriptors;    // for ORB, each row is of size 32 (128 bit)
+    Mat descriptors;    // for ORB, each row is of size 32 (128 byte)
 };
 
 struct FrameMeta
@@ -44,11 +44,6 @@ public:
 
     // Relative R|t matrix
     cv::Mat Rt;
-
-    // do not refer camera_pose
-    // because I am considering
-    // removing it later.
-    cv::Mat camera_pose;
 
     // features
     Features features;

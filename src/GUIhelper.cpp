@@ -1,6 +1,11 @@
-/**
- * OpenCV GUI helper functions
- */
+//
+// GUIhelper.cpp
+//
+// A bunch of wrapper functions for 
+// OpenCV GUI operations.
+//
+// @Yu
+
 #include "CommonCV.h"
 
 void imshow2(const char* title, const Mat& im1, const Mat& im2)
