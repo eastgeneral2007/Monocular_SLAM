@@ -31,9 +31,6 @@ public:
     // load temporary KeyFrames and MapPoints for testing
     vector<KeyFrame> static loadKeyFrames(string key_frame_filename);
     vector<MapPoint> static loadMapPointsAndAssociateKeyFrames(string map_points_filename, vector<KeyFrame>);
-
-
-
 };
 
 

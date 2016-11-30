@@ -21,8 +21,14 @@ using namespace cv;
 
 struct Features
 {
+    /* position of N features */
     vector<Point2d> positions;
-    Mat descriptors;    // for ORB, each row is of size 32 (128 byte)
+
+    /* NxM mat storing the M-length descriptors of N features*/
+    Mat descriptors;  // for ORB, each row is of size 32 (128 byte)
+    
+    /* map point each feature corresponds to */
+    vector<MapPoint*> mapPoints;
 };
 
 struct FrameMeta
@@ -36,6 +42,7 @@ typedef Mat RawBuffer;
 
 struct Frame {
 public:
+
     // Frame Meta Info
     FrameMeta meta;
 
@@ -54,6 +61,12 @@ public:
     bool operator < (const Frame & frameB) const {
         return frameB.meta.timestamp > meta.timestamp;
     }
+
+    // neighbouring KeyFrames
+    vector<MapPoint*> map_points;
+    vector<KeyFrame*> connected_keyframes;
+    map<KeyFrame*, int> conneted_keyframes_weights;
+
 };
 
 #endif

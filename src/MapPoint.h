@@ -1,15 +1,15 @@
 //
-// Created by JimXing on 12/11/16.
-// 3D MapPoints
+// MapPoint.h
+// 
+// 3D point obtained from triangulation.
+//
+// @Jim, Yu
 
 #ifndef MONOCULAR_SLAM_MAPPOINT_H
 #define MONOCULAR_SLAM_MAPPOINT_H
-#include "opencv2/calib3d/calib3d.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
 
-using namespace std;
-using namespace cv;
+#include "Common.h"
+#include "CommonCV.h"
 
 class KeyFrame;
 
