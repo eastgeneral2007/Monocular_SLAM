@@ -11,6 +11,7 @@
 
 #include "InitialCameraMotionEstimator.h"
 #include "CommonMath.h"
+#include "ParamConfig.h"
 #ifdef DEBUG_INITIALCAMERAMOTIONESTIMATOR
 #include "SFMDebugging.h"
 #endif
@@ -183,6 +184,13 @@ void InitialCameraMotionEstimator::process(DataManager& data, int frameIdx)
 	// correspondence matching
 	vector<DMatch> matches;
 	matcher.match(descriptors1, descriptors2, matches);
+	sort(matches.begin(), matches.end());
+	matches = vector<DMatch>(matches.begin(), matches.begin() + FEATURE_MATCH_NUM);
+
+#ifdef DEBUG_INITIALCAMERAMOTIONESTIMATOR
+	visualizeFeatureMatching(preFrame.frameBuffer, curFrame.frameBuffer, positions1, positions2, matches);
+	waitKey(0);
+#endif
 
 	// compute fundamental matrix
 	Mat F;

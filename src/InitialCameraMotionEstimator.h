@@ -20,7 +20,7 @@
 class InitialCameraMotionEstimator: public ProcessingNode
 {
 public:
-	InitialCameraMotionEstimator():ProcessingNode("InitialCameraMotionEstimator"), matcher(NORM_HAMMING) {}
+	InitialCameraMotionEstimator():ProcessingNode("InitialCameraMotionEstimator"), matcher(NORM_HAMMING, true) {}
 	virtual void process(DataManager& data, int frameIdx);
 	virtual bool validationCheck(DataManager& data, int frameIdx);
 private:

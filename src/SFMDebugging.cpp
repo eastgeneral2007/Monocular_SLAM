@@ -20,23 +20,49 @@ struct DrawEpipolarLineUserData
 
 static void drawEpipolarLineCallback(int event, int x, int y, int flags, void* userdata)
 {
-	DrawEpipolarLineUserData* userData = (DrawEpipolarLineUserData*)userdata;
-	const Mat& F = *(userData->F);
-	Mat& img1 = *(userData->img1);
-	Mat& img2 = *(userData->img2);
-	int width1 = img1.cols - 1;
-	int height1 = img1.rows - 1;
-
-	if (event == EVENT_LBUTTONDOWN && x < width1 && y < height1)
+	if (event == EVENT_LBUTTONDOWN)
     {
-    	Matx31d x0(x,y,1);
-    	Mat abc = F * Mat(x0);
-    	drawLine(img2, abc.at<double>(0), abc.at<double>(1), abc.at<double>(2));
-        drawPoint(img1, Point(x,y));
-        imshow2("visualization",img1, img2);
-        waitKey();
+		DrawEpipolarLineUserData* userData = (DrawEpipolarLineUserData*)userdata;
+		const Mat& F = *(userData->F);
+		Mat& img1 = *(userData->img1);
+		Mat& img2 = *(userData->img2);
+		int width1 = img1.cols - 1;
+		int height1 = img1.rows - 1;
+		if (x < width1 && y < height1)
+		{
+			Matx31d x0(x,y,1);
+			Mat abc = F * Mat(x0);
+			drawLine(img2, abc.at<double>(0), abc.at<double>(1), abc.at<double>(2));
+			drawPoint(img1, Point(x,y));
+			imshow2("visualization",img1, img2);
+			waitKey();
+		}
     }
 }
+
+/**
+ * visualizeFeatureMatching
+ *
+ * visualize the feature matching correspondence
+ * of two frames.
+ */
+ void visualizeFeatureMatching(const Mat& img1, const Mat& img2, 
+ 							   const vector<Point2d>& pos1, const vector<Point2d>& pos2, 
+							   const vector<DMatch>& matches)
+ {
+	 vector<KeyPoint> keypoints1;
+	 for (int i = 0; i < pos1.size(); i++) {
+		 keypoints1.push_back(KeyPoint(pos1[i].x, pos1[i].y, 1));
+	 }
+	 vector<KeyPoint> keypoints2;
+	 for (int i = 0; i < pos1.size(); i++) {
+		 keypoints2.push_back(KeyPoint(pos2[i].x, pos2[i].y, 1));
+	 }
+	 Mat outImg;
+	 drawMatches(img1, keypoints1, img2, keypoints2, matches, outImg);
+	 imshow("feature matching", outImg);
+ }
+
 
 /**
  * drawEpipolarLine
