@@ -41,6 +41,10 @@
 .idea/Monocular_SLAM.iml
 .idea/
 
+# For VS Code
+src/.vscode/
 
-# For CMake
+# For build
 build/*
+
+
