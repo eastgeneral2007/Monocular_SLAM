@@ -11,20 +11,20 @@
 
 class LoopCloser : public ProcessingNode{
 public:
-    typedef pair<set<KeyFrame*>,int> consistent_group;
+    typedef pair<set<Frame*>,int> consistent_group;
 
     // local reference to data manager, so that no need to have "DataManager & data" registration in all methods
     DataManager & data_reference;
 
     // The following attributes may or may not be needed depending on our implementation
-    std::list<KeyFrame*> mlpLoopKeyFrameQueue;
+    std::list<Frame*> mlpLoopFrameQueue;
 
-    KeyFrame* current_kf;
-    KeyFrame* matched_kf;
+    Frame* current_kf;
+    Frame* matched_kf;
 
     std::vector<consistent_group> consistent_groups;
-    std::vector<KeyFrame*> enough_consistent_candidates;
-    std::vector<KeyFrame*> current_connected_kfs;
+    std::vector<Frame*> enough_consistent_candidates;
+    std::vector<Frame*> current_connected_kfs;
     std::vector<MapPoint*> current_matched_points;
     std::vector<MapPoint*> Loop_map_points;
 
@@ -37,9 +37,9 @@ public:
 
     void RunGlobalBundleAdjustment(unsigned long n_loop_kf);
 
-    void InsertKeyFrame(KeyFrame *keyframe);
+    void InsertFrame(Frame *keyframe);
 
-    bool CheckNewKeyFrames();
+    bool CheckNewFrames();
 
     bool DetectLoop();
 

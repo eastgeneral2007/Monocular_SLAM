@@ -11,22 +11,22 @@
 #include "Common.h"
 #include "CommonCV.h"
 
-class KeyFrame;
+class Frame;
 
 class MapPoint {
 
 public:
     long unsigned int id; // identifier
     cv::Mat world_pos;// 3D world coordinate
-    std::map<KeyFrame*, size_t> observer_to_index; // map of observing KeyFrame
-    KeyFrame* reference_kf; // reference KF, the nearest one
+    std::map<Frame*, size_t> observer_to_index; // map of observing Frame
+    Frame* reference_kf; // reference KF, the nearest one
     cv::Mat mean_view_dir; // mean viewing direction
 
 public:
 
-    void addObservingKeyFrame(KeyFrame* key_frame, size_t index);
-    size_t getObservingKeyFrame(KeyFrame* key_frame);
-    void deleteObservingKeyFrame(KeyFrame*);
+    void addObservingFrame(Frame* key_frame, size_t index);
+    size_t getObservingFrame(Frame* key_frame);
+    void deleteObservingFrame(Frame*);
 
 };
 

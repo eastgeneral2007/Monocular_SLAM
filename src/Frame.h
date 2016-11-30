@@ -64,8 +64,8 @@ public:
 
     // neighbouring KeyFrames
     vector<MapPoint*> map_points;
-    vector<KeyFrame*> connected_keyframes;
-    map<KeyFrame*, int> conneted_keyframes_weights;
+    vector<Frame*> connected_frames;
+    map<Frame*, int> conneted_frames_weights;
 
 };
 
