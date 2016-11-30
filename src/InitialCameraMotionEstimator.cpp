@@ -167,7 +167,7 @@ static void constructRt(const Mat& R, const Mat& t, Mat& Rt)
 
 void InitialCameraMotionEstimator::process(DataManager& data, int frameIdx)
 {
-	static const int step = 10;
+	static const int step = 1;
 	if (frameIdx - step < 0) {
 		return;
 	}
