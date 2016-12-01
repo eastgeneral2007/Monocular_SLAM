@@ -26,6 +26,8 @@ public:
 
     void static LocalBundleAdjustment(Frame* frame, bool *pb_stop_flag, DataManager & data);
 
+    void static PoseBundleAdjustment(Frame &frame, DataManager &data, int n_round = 5);
+
     // load temporary Frames and MapPoints for testing
     vector<Frame> static loadFrames(string key_frame_filename);
     vector<MapPoint> static loadMapPointsAndAssociateFrames(string map_points_filename, vector<Frame>);
