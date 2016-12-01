@@ -118,7 +118,8 @@ static void computeFundamentalMatrix(const vector<Point2d>& positions1,
 									 const vector<DMatch>& matches,
 									 vector<Point2d>& inlierPositions1,
 									 vector<Point2d>& inlierPositions2,
-									 Mat& F)
+									 Mat& F,
+									 vector<unsigned char>& status)
 {
 	static const double MAX_DISTANCE = 3.;
 	static const double CONFIDENCE = 0.99;
@@ -132,7 +133,6 @@ static void computeFundamentalMatrix(const vector<Point2d>& positions1,
 	}
 
 	// fundamental matrix estimation using eight point algorithm with RANSAC
-	vector<unsigned char> status;
 	F = findFundamentalMat(inputs1, inputs2, FM_RANSAC, MAX_DISTANCE, CONFIDENCE, status);
 
 	// construct aligned inlier position arrays
@@ -177,6 +177,8 @@ void InitialCameraMotionEstimator::process(DataManager& data, int frameIdx)
 	Frame& preFrame = data.frames[frameIdx-step];
 	vector<Point2d>& positions1 = preFrame.features.positions;
 	vector<Point2d>& positions2 = curFrame.features.positions;
+	vector<MapPoint*>& mapPoints1=  preFrame.features.mapPoints;
+	vector<MapPoint*>& mapPoints2=  curFrame.features.mapPoints;
 	Mat descriptors1 = preFrame.features.descriptors;
 	Mat descriptors2 = curFrame.features.descriptors;
 	const Mat& K = data.camera_intrinsics;
@@ -196,7 +198,8 @@ void InitialCameraMotionEstimator::process(DataManager& data, int frameIdx)
 	Mat F;
 	vector<Point2d> goodPositions1;
 	vector<Point2d> goodPositions2;
-	computeFundamentalMatrix(positions1, positions2, matches, goodPositions1, goodPositions2, F);
+	vector<unsigned char> status;
+	computeFundamentalMatrix(positions1, positions2, matches, goodPositions1, goodPositions2, F, status);
 	F.convertTo(F, CV_64F);
 
 #ifdef DEBUG_INITIALCAMERAMOTIONESTIMATOR
@@ -255,11 +258,39 @@ void InitialCameraMotionEstimator::process(DataManager& data, int frameIdx)
 	vector<Point3d> result2;
 	int count1 = TriangulateMultiplePointsFromTwoView(goodPositions1, goodPositions2, I, Rt2, K, result2);
 
-	if (count0 > count1) curFrame.Rt = Rt1;
-	else curFrame.Rt = Rt2;
+	vector<Point3d>* resultPtr;
+	if (count0 > count1) {
+		curFrame.Rt = Rt1;
+		resultPtr = &result1;
+	}
+	else {
+		curFrame.Rt = Rt2;
+		resultPtr = &result2;
+	}
+	vector<Point3d> &result = *resultPtr;
+
+	// associate each feature points with triangulated points
+	int count = 0;
+	for (int i=0; i<matches.size(); i++)
+	{
+		if (status[i] == 1) {
+			// insert a new map point
+			int id = data.mapPoints.size();
+			data.mapPoints.push_back(MapPoint(result[count], id));
+			count ++;
+
+			// associate map point with the frames and feature indices
+			mapPoints1[matches[i].queryIdx] = &data.mapPoints[id];
+			mapPoints2[matches[i].trainIdx] = &data.mapPoints[id];
+			data.mapPoints[id].addObservingFrame(&preFrame, matches[i].queryIdx);
+			data.mapPoints[id].addObservingFrame(&curFrame, matches[i].trainIdx);
+		}
+	}
 
 	return;
 }
+
+
 
 bool InitialCameraMotionEstimator::validationCheck(DataManager& data, int frameIdx)
 {

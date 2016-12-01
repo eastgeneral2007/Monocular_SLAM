@@ -17,11 +17,11 @@ void ORBFeatureExtractor::process(DataManager& data, int frameIdx) {
 	detector.detect(frameBuffer, keypoints);
 	Mat descriptor;
 	extractor.compute(frameBuffer, keypoints, descriptor);
-	for (int i=0; i<keypoints.size(); i++)
-	{
+	frame.features.descriptors = descriptor;
+	for (int i=0; i<keypoints.size(); i++) {
 		frame.features.positions.push_back(keypoints[i].pt);
-		frame.features.descriptors = descriptor;
 	}
+	frame.features.mapPoints.resize(keypoints.size(), NULL);
 
 	// Mat visualization;
 	// drawKeypoints(frameBuffer, keypoints,visualization, Scalar::all(-1), DrawMatchesFlags::DEFAULT);
