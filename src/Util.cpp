@@ -13,7 +13,7 @@ using namespace g2o;
 
 typedef BlockSolver< BlockSolverTraits<6, 3> > SLAMBlockSolver;
 typedef LinearSolverEigen<SLAMBlockSolver::PoseMatrixType> SLAMLinearSolver;
-typedef std::map<Frame*, size_t>::iterator map_frame_iter;
+typedef std::map<Frame*, int>::iterator map_frame_iter;
 
 cv::Mat Util:: ComputeF(Frame f1, Frame f2) {
     return cv::Mat();
@@ -59,7 +59,7 @@ void Util::BundleAdjustment(vector<Frame> &frames, vector<MapPoint> &map_points,
     // create vertex for MapPoints
     for (int i =0;i<map_points.size();i++) {
         MapPoint *this_map_point = &map_points[i];
-        map<Frame *, size_t> observations = this_map_point->observer_to_index; // get all observers mapping
+        map<Frame *, int> observations = this_map_point->observerToIndex; // get all observers mapping
 
         map_frame_iter iterator;
         // check if it does not have associated frame in the frame_vertex_id_set
@@ -78,7 +78,7 @@ void Util::BundleAdjustment(vector<Frame> &frames, vector<MapPoint> &map_points,
 
         g2o::VertexSBAPointXYZ *point_vertex = new g2o::VertexSBAPointXYZ();
 
-        point_vertex->setEstimate(Converter::cvMatToVector3d(this_map_point->world_pos));
+        point_vertex->setEstimate(Converter::point3dToVector3d(this_map_point->worldPosition));
         // id for point vertex, starting from frame_max_id + 1 to not overlap with frame_vertex ids
         int map_point_id = this_map_point->id + frame_max_id + 1;
         point_vertex->setId(map_point_id);
@@ -91,7 +91,7 @@ void Util::BundleAdjustment(vector<Frame> &frames, vector<MapPoint> &map_points,
             // iterator->first = Frame *
             // iterator->second = size_t
             Frame *observer = iterator->first;
-            size_t feature_idx = iterator->second;
+            int feature_idx = iterator->second;
             // ignore if the observer is not in frame vertexes added
             if (frame_vertex_id_set.find(observer->meta.frameID) != frame_vertex_id_set.end()) {
 
@@ -150,7 +150,7 @@ void Util::BundleAdjustment(vector<Frame> &frames, vector<MapPoint> &map_points,
             g2o::VertexSBAPointXYZ* point_vertex = static_cast<g2o::VertexSBAPointXYZ*>(optimizer.vertex(this_map_point->id+frame_max_id+1));
 
             if(n_loop_kf==0) {
-                this_map_point->world_pos = Converter::vector3DToCvMat(point_vertex->estimate());
+                this_map_point->worldPosition = Converter::vector3dToPoint3d(point_vertex->estimate());
             }
             // TODO: check if needs to maintain different 3D coords for n_loop_kf != 0, loop points
         }
