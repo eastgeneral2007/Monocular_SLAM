@@ -22,10 +22,10 @@ cv::Mat Util:: ComputeF(Frame f1, Frame f2) {
 void Util::GlobalBundleAdjustemnt(DataManager &data, int n_iterations, bool pb_stop_flag,
                                   const unsigned long n_loop_kf, const bool b_robust) {
     // just invoke the usual bundle adjustment function with all map points and key frames maintained in data manager
-    Util::BundleAdjustment(data.frames,data.mapPoints,n_iterations,pb_stop_flag,n_loop_kf,b_robust);
+    Util::BundleAdjustment(data, data.frames,data.mapPoints,n_iterations,pb_stop_flag,n_loop_kf,b_robust);
 }
 
-void Util::BundleAdjustment(vector<Frame> &frames, vector<MapPoint> &map_points,
+void Util::BundleAdjustment(DataManager &data, vector<Frame> &frames, vector<MapPoint> &map_points,
                              int n_iterations, bool pb_stop_flag, const unsigned long n_loop_kf,
                              const bool b_robust) {
     SparseOptimizer optimizer;
@@ -114,10 +114,10 @@ void Util::BundleAdjustment(vector<Frame> &frames, vector<MapPoint> &map_points,
                     huber_kernel->setDelta(thresh_huber);
                 }
 
-//                e->fx = observer->fx;
-//                e->fy = observer->fy;
-//                e->cx = observer->cx;
-//                e->cy = observer->cy;
+                e->fx = data.camera_intrinsics.at<double>(0,0);
+                e->fy = data.camera_intrinsics.at<double>(1,1);
+                e->cx = data.camera_intrinsics.at<double>(0,2);
+                e->cy = data.camera_intrinsics.at<double>(1,2);
 
                 optimizer.addEdge(e);
             }
