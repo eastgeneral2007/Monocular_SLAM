@@ -17,7 +17,7 @@ public:
     cv::Mat static ComputeF(Frame f1, Frame f2);
 
     // util function for optimisation
-    void static BundleAdjustment(vector<Frame> &frames, vector<MapPoint> &map_points,
+    void static BundleAdjustment(DataManager &data, vector<Frame> &frames, vector<MapPoint> &map_points,
                                  int n_iterations, bool pb_stop_flag, const unsigned long n_loop_kf,
                                  const bool b_robust);
 
@@ -25,6 +25,8 @@ public:
                                        const bool b_robust = true);
 
     void static LocalBundleAdjustment(Frame* frame, bool *pb_stop_flag, DataManager & data);
+
+    void static PoseBundleAdjustment(Frame &frame, DataManager &data, int n_round = 5);
 
     // load temporary Frames and MapPoints for testing
     vector<Frame> static loadFrames(string key_frame_filename);

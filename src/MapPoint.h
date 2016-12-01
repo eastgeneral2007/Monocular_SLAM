@@ -16,9 +16,11 @@ class Frame;
 class MapPoint {
 
 public:
+    MapPoint(Point3d worldPosition, int id): worldPosition(worldPosition), id(id) {}
     long unsigned int id; // identifier
     Point3d worldPosition; // 3D world coordinate
     std::map<Frame*, int> observerToIndex; // map of observing Frame to the index of feature
+
 public:
     void addObservingFrame(Frame* frame, int featureIdx);
     int  getFeatureIdxFromObservingFrame(Frame* frame);
