@@ -58,7 +58,7 @@ void Util::BundleAdjustment(DataManager &data, vector<Frame> &frames, vector<Map
     // create vertex for MapPoints
     for (int i =0;i<map_points.size();i++) {
         MapPoint *this_map_point = &map_points[i];
-        map<Frame *, int> observations = this_map_point->observer_to_index; // get all observers mapping
+        map<Frame *, int> observations = this_map_point->observerToIndex; // get all observers mapping
 
         map_frame_iter iterator;
         // check if it does not have associated frame in the frame_vertex_id_set
@@ -77,7 +77,7 @@ void Util::BundleAdjustment(DataManager &data, vector<Frame> &frames, vector<Map
 
         g2o::VertexSBAPointXYZ *point_vertex = new g2o::VertexSBAPointXYZ();
 
-        point_vertex->setEstimate(Converter::cvMatToVector3d(this_map_point->world_pos));
+        point_vertex->setEstimate(Converter::point3dToVector3d(this_map_point->worldPosition));
         // id for point vertex, starting from frame_max_id + 1 to not overlap with frame_vertex ids
         int map_point_id = this_map_point->id + frame_max_id + 1;
         point_vertex->setId(map_point_id);
@@ -149,7 +149,7 @@ void Util::BundleAdjustment(DataManager &data, vector<Frame> &frames, vector<Map
             g2o::VertexSBAPointXYZ* point_vertex = static_cast<g2o::VertexSBAPointXYZ*>(optimizer.vertex(this_map_point->id+frame_max_id+1));
 
             if(n_loop_kf==0) {
-                this_map_point->world_pos = Converter::vector3DToCvMat(point_vertex->estimate());
+                this_map_point->worldPosition = Converter::vector3dToPoint3d(point_vertex->estimate());
             }
             // TODO: check if needs to maintain different 3D coords for n_loop_kf != 0, loop points
         }
@@ -172,7 +172,7 @@ void Util::PoseBundleAdjustment(Frame &frame, DataManager &data, int n_round) {
     frame_vertex->setFixed(false);
     optimizer.addVertex(frame_vertex);
 
-    int num_map_points = frame.map_points.size();
+    int num_map_points = frame.features.mapPoints.size();
     int num_correspondences = 0;
     // keep a reference to the added edges
     vector<g2o::EdgeSE3ProjectXYZOnlyPose * > added_edges;
@@ -180,12 +180,12 @@ void Util::PoseBundleAdjustment(Frame &frame, DataManager &data, int n_round) {
 
     // insert MapPoint as EdgeSE3ProjectXYZOnlyPose
     for (int i =0;i < num_map_points;i++) {
-        MapPoint * this_map_point = frame.map_points[i];
+        MapPoint * this_map_point = frame.features.mapPoints[i];
         if (this_map_point != NULL) {
             g2o::EdgeSE3ProjectXYZOnlyPose * e = new g2o::EdgeSE3ProjectXYZOnlyPose();
             num_correspondences ++;
             
-            int corresponding_feature_idx = this_map_point->observer_to_index[&frame];
+            int corresponding_feature_idx = this_map_point->observerToIndex[&frame];
             const cv::Point2f &pos = frame.features.positions[corresponding_feature_idx];
             Eigen::Matrix<double, 2, 1> obs;
             obs << pos.x, pos.y;
@@ -207,10 +207,10 @@ void Util::PoseBundleAdjustment(Frame &frame, DataManager &data, int n_round) {
             e->cy = data.camera_intrinsics.at<double>(1,2);
 
             // put world position to this unary edge
-            cv::Mat Xw = this_map_point->world_pos;
-            e->Xw[0] = Xw.at<float>(0);
-            e->Xw[1] = Xw.at<float>(1);
-            e->Xw[2] = Xw.at<float>(2);
+            Point3d point = this_map_point->worldPosition;
+            e->Xw[0] = point.x;
+            e->Xw[1] = point.y;
+            e->Xw[2] = point.z;
             e->setLevel(0); // initially, optimise all
 
             optimizer.addEdge(e);

@@ -6,7 +6,7 @@
 //
 // @Yu
 
-#define DEBUG_POINTCLOUD_VISUALIZER
+// #define DEBUG_POINTCLOUD_VISUALIZER
 
 #include "PointCloudVisualizer.h"
 #include "PCLUtils.h"
@@ -21,6 +21,7 @@ const static char* CLOUD_NAME = "map points";
 static CloudPtr generateTestCloud();
 static void renderPointCloud(VisPtr viewer, CloudPtr cloud);
 static VisPtr createVisualizer();
+static CloudPtr MapPointsToCloudPtr(const vector<MapPoint>& points);
 
 #ifdef DEBUG_POINTCLOUD_VISUALIZER
 static CloudPtr cloud;
@@ -34,9 +35,13 @@ void PointCloudVisualizer::init()
     viewer = createVisualizer();
 }
 
+
 void PointCloudVisualizer::process(DataManager& data, int frameIdx)
 {
 #ifdef DEBUG_POINTCLOUD_VISUALIZER
+    renderPointCloud(viewer, cloud);
+#else 
+    CloudPtr cloud = MapPointsToCloudPtr(data.mapPoints);
     renderPointCloud(viewer, cloud);
 #endif
     viewer->spinOnce (100);
@@ -47,17 +52,16 @@ bool PointCloudVisualizer::validationCheck(DataManager& data, int frameIdx)
     return true;
 }
 
-static boost::shared_ptr<pcl::visualization::PCLVisualizer> createVisualizer()
+static VisPtr createVisualizer()
 {
-    boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;
-    viewer = boost::shared_ptr<pcl::visualization::PCLVisualizer>(new pcl::visualization::PCLVisualizer (TITLE_NAME));
+    VisPtr viewer = VisPtr(new pcl::visualization::PCLVisualizer (TITLE_NAME));
     viewer->setBackgroundColor (0.1, 0.1, 0.1);
     // viewer->addCoordinateSystem (1.0);
     viewer->initCameraParameters ();
     return (viewer);
 }
 
-static void renderPointCloud(boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud)
+static void renderPointCloud(VisPtr viewer, CloudPtr cloud)
 {
     if (viewer->contains(CLOUD_NAME)) {
         viewer->updatePointCloud(cloud, CLOUD_NAME);
@@ -69,7 +73,7 @@ static void renderPointCloud(boost::shared_ptr<pcl::visualization::PCLVisualizer
 }
 
 #ifdef DEBUG_POINTCLOUD_VISUALIZER
-static pcl::PointCloud<pcl::PointXYZ>::Ptr generateTestCloud()
+static CloudPtr generateTestCloud()
 {
     pcl::PointCloud<pcl::PointXYZ>::Ptr basic_cloud_ptr (new pcl::PointCloud<pcl::PointXYZ>);
     for (float z(-1.0); z <= 1.0; z += 0.05)
@@ -88,3 +92,20 @@ static pcl::PointCloud<pcl::PointXYZ>::Ptr generateTestCloud()
     return basic_cloud_ptr;
 }
 #endif
+
+static CloudPtr MapPointsToCloudPtr(const vector<MapPoint>& points)
+{
+    pcl::PointCloud<pcl::PointXYZ>::Ptr basic_cloud_ptr (new pcl::PointCloud<pcl::PointXYZ>);
+    for (int i=0; i<points.size(); i++)
+    {
+        const MapPoint &point = points[i];
+        pcl::PointXYZ basic_point;
+        basic_point.x = point.worldPosition.x;
+        basic_point.y = point.worldPosition.y;
+        basic_point.z = point.worldPosition.z;
+        basic_cloud_ptr->points.push_back(basic_point);
+    }
+    basic_cloud_ptr->width = (int) basic_cloud_ptr->points.size ();
+    basic_cloud_ptr->height = 1;
+    return basic_cloud_ptr;    
+}

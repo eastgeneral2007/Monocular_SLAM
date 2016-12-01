@@ -16,18 +16,15 @@ class Frame;
 class MapPoint {
 
 public:
+    MapPoint(Point3d worldPosition, int id): worldPosition(worldPosition), id(id) {}
     long unsigned int id; // identifier
-    cv::Mat world_pos;// 3D world coordinate
-    std::map<Frame*, size_t> observer_to_index; // map of observing Frame
-    Frame* reference_kf; // reference KF, the nearest one
-    cv::Mat mean_view_dir; // mean viewing direction
+    Point3d worldPosition; // 3D world coordinate
+    std::map<Frame*, int> observerToIndex; // map of observing Frame to the index of feature
 
 public:
-
-    void addObservingFrame(Frame* key_frame, size_t index);
-    size_t getObservingFrame(Frame* key_frame);
-    void deleteObservingFrame(Frame*);
-
+    void addObservingFrame(Frame* frame, int featureIdx);
+    int  getFeatureIdxFromObservingFrame(Frame* frame);
+    void deleteObservingFrame(Frame* frame);
 };
 
 
