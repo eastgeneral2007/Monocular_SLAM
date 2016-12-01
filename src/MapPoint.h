@@ -21,7 +21,7 @@ public:
     std::map<Frame*, int> observerToIndex; // map of observing Frame to the index of feature
 public:
     void addObservingFrame(Frame* frame, int featureIdx);
-    int getObservingFrame(Frame* frame);
+    int  getFeatureIdxFromObservingFrame(Frame* frame);
     void deleteObservingFrame(Frame* frame);
 };
 

@@ -27,7 +27,7 @@ struct Features
     /* NxM mat storing the M-length descriptors of N features*/
     Mat descriptors;  // for ORB, each row is of size 32 (128 byte)
     
-    /* map point each feature corresponds to */
+    /* the map point each feature corresponds to */
     vector<MapPoint*> mapPoints;
 };
 
@@ -55,18 +55,9 @@ public:
     // features
     Features features;
 
-    // mapPoints associated to feature points, NULL if no association
-    std::vector<MapPoint*> feature_to_mappoints;
-
     bool operator < (const Frame & frameB) const {
         return frameB.meta.timestamp > meta.timestamp;
     }
-
-    // neighbouring KeyFrames
-    vector<MapPoint*> map_points;
-    vector<Frame*> connected_frames;
-    map<Frame*, int> conneted_frames_weights;
-
 };
 
 #endif
