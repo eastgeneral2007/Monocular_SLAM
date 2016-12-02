@@ -13,7 +13,7 @@ using namespace g2o;
 
 typedef BlockSolver< BlockSolverTraits<6, 3> > SLAMBlockSolver;
 typedef LinearSolverEigen<SLAMBlockSolver::PoseMatrixType> SLAMLinearSolver;
-typedef std::map<Frame*, int>::iterator map_frame_iter;
+typedef std::map<int, int>::iterator map_frame_iter;
 
 cv::Mat Util:: ComputeF(Frame f1, Frame f2) {
     return cv::Mat();
@@ -59,12 +59,12 @@ void Util::BundleAdjustment(vector<Frame> &frames, vector<MapPoint> &map_points,
     // create vertex for MapPoints
     for (int i =0;i<map_points.size();i++) {
         MapPoint *this_map_point = &map_points[i];
-        map<Frame *, int> observations = this_map_point->observerToIndex; // get all observers mapping
+        map<int, int> observations = this_map_point->observerToIndex; // get all observers mapping
 
         map_frame_iter iterator;
         // check if it does not have associated frame in the frame_vertex_id_set
         for (iterator = observations.begin(); iterator != observations.end(); iterator++) {
-            Frame *observer = iterator->first;
+            const Frame *observer = &frames[iterator->first];
             if (frame_vertex_id_set.find(observer->meta.frameID) != frame_vertex_id_set.end()) {
                 break;
             }
@@ -90,7 +90,7 @@ void Util::BundleAdjustment(vector<Frame> &frames, vector<MapPoint> &map_points,
 
             // iterator->first = Frame *
             // iterator->second = size_t
-            Frame *observer = iterator->first;
+            const Frame *observer = &frames[iterator->first];
             int feature_idx = iterator->second;
             // ignore if the observer is not in frame vertexes added
             if (frame_vertex_id_set.find(observer->meta.frameID) != frame_vertex_id_set.end()) {

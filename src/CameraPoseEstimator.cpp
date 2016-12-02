@@ -1,5 +1,5 @@
 //
-// InitialCameraMotionEstimator.cpp
+// CameraPoseEstimator.cpp
 //
 // This stage performs camera motion estimation
 // for each frame based on the feature matching 
@@ -9,12 +9,12 @@
 //
 // @Yu
 
-#include "InitialCameraMotionEstimator.h"
+// #define DEBUG_CameraPoseEstimator
+
+#include "CameraPoseEstimator.h"
 #include "CommonMath.h"
 #include "ParamConfig.h"
-#ifdef DEBUG_INITIALCAMERAMOTIONESTIMATOR
 #include "SFMDebugging.h"
-#endif
 
 /**
  * triangulate a single point from two view
@@ -24,7 +24,7 @@
  */
 static bool TriangulateSinglePointFromTwoView(const Point2d& pts1, const Point2d& pts2,  
 											  const Mat& Rt1, const Mat& Rt2, const Mat& K,
-											  Point3d& result)
+											  Point3d& result, bool countFront = false)
 {
 	// compute camera matrix
 	Mat P1 = K * Rt1; Mat P2 = K * Rt2;
@@ -55,11 +55,13 @@ static bool TriangulateSinglePointFromTwoView(const Point2d& pts1, const Point2d
 	Mat2Point3d(X, result);
 
 	// check whether it is in front of the both camera
-	Mat pc1 = Rt1*X.t();
-	Mat pc2 = Rt2*X.t();
-
-	if (pc1.at<double>(2)>0 && pc2.at<double>(2)>0) return true;
-	else return false;
+	if (countFront) {
+		Mat pc1 = Rt1*X.t();
+		Mat pc2 = Rt2*X.t();
+		if (pc1.at<double>(2)>0 && pc2.at<double>(2)>0) return true;
+		else return false;
+	}
+	return true;
 }
 
 
@@ -70,18 +72,19 @@ static bool TriangulateSinglePointFromTwoView(const Point2d& pts1, const Point2d
  */
 static int TriangulateMultiplePointsFromTwoView(const vector<Point2d>& pts1, const vector<Point2d>& pts2, 
 					  							 const Mat& Rt1, const Mat& Rt2, const Mat& K,
-					  							 vector<Point3d>& result)
+					  							 vector<Point3d>& result, bool countFront = false)
 {
 	int count = 0;
 	result.clear();
 	for (int i=0; i<pts1.size(); i++)
 	{
 		Point3d point3d;
-		bool front = TriangulateSinglePointFromTwoView(pts1[i], pts2[i], Rt1, Rt2, K, point3d);
+		bool front = TriangulateSinglePointFromTwoView(pts1[i], pts2[i], Rt1, Rt2, K, point3d, countFront);
 		if (front) count++;
 		result.push_back(point3d);
 	}
-	return count;
+	if (!countFront) return 0;
+	else return count;
 }
 
 static bool ExtractRTfromE(const Mat& E,
@@ -165,31 +168,83 @@ static void constructRt(const Mat& R, const Mat& t, Mat& Rt)
 	Rt.at<double>(2,3) = t.at<double>(2);
 }
 
-void InitialCameraMotionEstimator::process(DataManager& data, int frameIdx)
-{
-	static const int step = 1;
-	if (frameIdx - step < 0) {
-		return;
-	}
+/**
+ * A simple feature match routine with ratio test
+ * (because ratio test outperforms cross-check)
+ */
+static void matchFeatures(const Mat& descriptors1, const Mat& descriptors2, vector<DMatch>& matches, float ratio = 0.8) 
+{	
+	BFMatcher matcher(NORM_HAMMING, false);
+	vector<vector<DMatch>> raw_matches;
+	matcher.knnMatch(descriptors1, descriptors2, raw_matches, 2);
 
+	// perform ratio test as suggested by by D.Lowe in his paper.
+	matches.clear();
+	for (int i=0; i < raw_matches.size(); i++) {
+		if (raw_matches[i][0].distance < raw_matches[i][1].distance * ratio) {
+			matches.push_back(raw_matches[i][0]);
+		}
+	}
+}
+
+/**
+ * associate a new feature point with an existing map point
+ */
+static void associateFeatureWithMapPoint(DataManager& data, int mapPointIndex,
+										 Frame& frame, int featureIdx)
+{
+	frame.features.mapPointsIndices[featureIdx] = mapPointIndex;
+	data.mapPoints[mapPointIndex].addObservingFrame(frame.meta.frameID, featureIdx);
+}
+
+/**
+ * set pose of the reference frame (the first frame).
+ */
+static void setReferenceFramePose(DataManager& data, int frameIdx)
+{
+	assert(frameIdx==0);
+	data.frames[frameIdx].Rt = Mat::eye(3,4,CV_64F);
+}
+
+/**
+ * register a new map point and establish the association needed.
+ */
+static void registerNewMapPoint(DataManager& data, Point3d pos, 
+							 	Frame& frame1, int featureIdx1, 
+								Frame& frame2, int featureIdx2)
+{
+	int id = data.mapPoints.size();
+	data.mapPoints.push_back(MapPoint(pos, id));
+	associateFeatureWithMapPoint(data, id, frame1, featureIdx1);
+	associateFeatureWithMapPoint(data, id, frame2, featureIdx2);
+}
+
+/**
+ * Pose Estimation based on the classical two view reconstruction algorithm.
+ *
+ * This routine is used for pose estimation for the first two frame
+ * by estimating fundamental, essential matrix and extract R/t from
+ * essential matrix.
+ */
+void CameraPoseEstimator::initialPoseEstimation(DataManager& data, int frameIdx)
+{
 	// fetch references
+	assert(frameIdx == 1);
 	Frame& curFrame = data.frames[frameIdx];
-	Frame& preFrame = data.frames[frameIdx-step];
+	Frame& preFrame = data.frames[frameIdx-1];
 	vector<Point2d>& positions1 = preFrame.features.positions;
 	vector<Point2d>& positions2 = curFrame.features.positions;
-	vector<MapPoint*>& mapPoints1=  preFrame.features.mapPoints;
-	vector<MapPoint*>& mapPoints2=  curFrame.features.mapPoints;
+	vector<int>& mapPointsIndices1=  preFrame.features.mapPointsIndices;
+	vector<int>& mapPointsIndices2=  curFrame.features.mapPointsIndices;
 	Mat descriptors1 = preFrame.features.descriptors;
 	Mat descriptors2 = curFrame.features.descriptors;
 	const Mat& K = data.camera_intrinsics;
 
 	// correspondence matching
 	vector<DMatch> matches;
-	matcher.match(descriptors1, descriptors2, matches);
-	sort(matches.begin(), matches.end());
-	matches = vector<DMatch>(matches.begin(), matches.begin() + FEATURE_MATCH_NUM);
+	matchFeatures(descriptors1, descriptors2, matches, FEATURE_MATCH_RATIO_TEST);
 
-#ifdef DEBUG_INITIALCAMERAMOTIONESTIMATOR
+#ifdef DEBUG_CameraPoseEstimator
 	visualizeFeatureMatching(preFrame.frameBuffer, curFrame.frameBuffer, positions1, positions2, matches);
 	waitKey(0);
 #endif
@@ -202,7 +257,7 @@ void InitialCameraMotionEstimator::process(DataManager& data, int frameIdx)
 	computeFundamentalMatrix(positions1, positions2, matches, goodPositions1, goodPositions2, F, status);
 	F.convertTo(F, CV_64F);
 
-#ifdef DEBUG_INITIALCAMERAMOTIONESTIMATOR
+#ifdef DEBUG_CameraPoseEstimator
 	const Mat& preImge = preFrame.frameBuffer;
 	const Mat& curImge = curFrame.frameBuffer;
 	drawEpipolarLine(F, preImge, curImge);
@@ -212,7 +267,7 @@ void InitialCameraMotionEstimator::process(DataManager& data, int frameIdx)
 	Mat E; 
 	computeEssentialMatrix(F, K, E);
 
-#ifdef DEBUG_INITIALCAMERAMOTIONESTIMATOR
+#ifdef DEBUG_CameraPoseEstimator
 	if (!CheckValidEssential(E)) {
 		std::cout << "Essential matrix is not valid!" << std::endl;
 	}
@@ -241,7 +296,7 @@ void InitialCameraMotionEstimator::process(DataManager& data, int frameIdx)
 		}
 	}
 
-#ifdef DEBUG_INITIALCAMERAMOTIONESTIMATOR
+#ifdef DEBUG_CameraPoseEstimator
 	if (!CheckValidRotation(R1) || !CheckValidRotation(R2)) {
 		std::cout << "Rotation is not valid!" << std::endl;
 	}
@@ -254,9 +309,9 @@ void InitialCameraMotionEstimator::process(DataManager& data, int frameIdx)
 	constructRt(R2, T2, Rt2);
 	Mat I = Mat::eye(3,4, CV_64F);
 	vector<Point3d> result1;
-	int count0 = TriangulateMultiplePointsFromTwoView(goodPositions1, goodPositions2, I, Rt1, K, result1);
+	int count0 = TriangulateMultiplePointsFromTwoView(goodPositions1, goodPositions2, I, Rt1, K, result1, true);
 	vector<Point3d> result2;
-	int count1 = TriangulateMultiplePointsFromTwoView(goodPositions1, goodPositions2, I, Rt2, K, result2);
+	int count1 = TriangulateMultiplePointsFromTwoView(goodPositions1, goodPositions2, I, Rt2, K, result2, true);
 
 	vector<Point3d>* resultPtr;
 	if (count0 > count1) {
@@ -268,31 +323,120 @@ void InitialCameraMotionEstimator::process(DataManager& data, int frameIdx)
 		resultPtr = &result2;
 	}
 	vector<Point3d> &result = *resultPtr;
-
 	// associate each feature points with triangulated points
 	int count = 0;
-	for (int i=0; i<matches.size(); i++)
-	{
+	for (int i=0; i<matches.size(); i++) {
 		if (status[i] == 1) {
-			// insert a new map point
-			int id = data.mapPoints.size();
-			data.mapPoints.push_back(MapPoint(result[count], id));
+			registerNewMapPoint(data, result[count], preFrame, matches[i].queryIdx, curFrame, matches[i].trainIdx);
 			count ++;
-
-			// associate map point with the frames and feature indices
-			mapPoints1[matches[i].queryIdx] = &data.mapPoints[id];
-			mapPoints2[matches[i].trainIdx] = &data.mapPoints[id];
-			data.mapPoints[id].addObservingFrame(&preFrame, matches[i].queryIdx);
-			data.mapPoints[id].addObservingFrame(&curFrame, matches[i].trainIdx);
 		}
 	}
-
 	return;
 }
 
-
-
-bool InitialCameraMotionEstimator::validationCheck(DataManager& data, int frameIdx)
+/**
+ * Pose Estimation based on perspective-n-points algorithm.
+ *
+ * This routine is used for pose estimation for the rest all
+ * frames, except the first two frames.
+ */
+void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 {
+	assert(frameIdx > 1);
+	
+	// traverse in a reverse manner the previous frames
+	// and find matched feature points in the previous
+	// frames with map points associated.
+	vector<Frame>& frames = data.frames;
+	Frame &curFrame = frames[frameIdx];
+	Features& curFeatures = curFrame.features;
+	int numCurFeatures = curFeatures.positions.size();
+
+	vector<bool> matched(numCurFeatures); // record features in the current frame already getting matched to avoid duplicated match.
+	vector<Point3d> mapPoints;			  // record 3d point position ...
+	vector<Point2f> imagePoints;		  // and corresponding image coordinates.
+
+	vector<vector<DMatch>> cachedMatches; // cached the match pairs for triangulation later.
+	int count = 0;
+	for (int i= frameIdx - 1; i >= 0; i --) 
+	{
+		Features& preFeatures = frames[i].features;
+		vector<DMatch> rawMatches;
+		matchFeatures(curFeatures.descriptors, preFeatures.descriptors, rawMatches);
+		cachedMatches.push_back(rawMatches);
+		for (int j=0; j < rawMatches.size(); j++) 
+		{
+			int curFrameFeatureIdx = rawMatches[j].queryIdx;
+			int preFrameFeatureIdx = rawMatches[j].trainIdx;
+			if (preFeatures.mapPointsIndices[preFrameFeatureIdx]!=-1 && !matched[curFrameFeatureIdx]) {
+				// associate the feature with the map pointer
+				count ++;
+				matched[curFrameFeatureIdx] = true;
+
+				int mapPointIdx = preFeatures.mapPointsIndices[preFrameFeatureIdx];
+				associateFeatureWithMapPoint(data, mapPointIdx, curFrame, curFrameFeatureIdx);
+
+				// record 3d map point position and 2d image coordinates 
+				mapPoints.push_back(data.mapPoints[mapPointIdx].worldPosition);
+				imagePoints.push_back(curFeatures.positions[curFrameFeatureIdx]);
+				if (count == numCurFeatures) break;
+			}
+		}
+		if (count == numCurFeatures) break;
+	}
+
+	// perform perspective-n-point algorithm to 
+	// estimate the current camera's pose.
+	Mat distCoeff = Mat::zeros(8, 1, CV_64F);
+	Mat rvec, tvec, R, Rt;
+	solvePnPRansac(mapPoints, imagePoints, data.camera_intrinsics, distCoeff, rvec, tvec);
+	Rodrigues(rvec, R); constructRt(R, tvec, Rt);
+	curFrame.Rt = Rt;
+
+	// perform triangulation again (but only with the 
+	// previous frame) to populate more map points.
+	count = 0;
+	for (int i= frameIdx - 1; i >= 0; i --)
+	{
+		Frame& preFrame = data.frames[i];
+		Features& preFeatures = frames[i].features;
+		int matchIdx = frameIdx -1 - i;
+		vector<DMatch>& matches = cachedMatches[matchIdx];
+		for (int j=0; j < matches.size(); j++)
+		{
+			int curFrameFeatureIdx = matches[j].queryIdx;
+			int preFrameFeatureIdx = matches[j].trainIdx;	
+			// perform triangulation only if the matched features 
+			// are both not associated with any map points yet.
+			if (preFeatures.mapPointsIndices[preFrameFeatureIdx]==-1 && 
+				curFeatures.mapPointsIndices[curFrameFeatureIdx]==-1)
+			{
+				Point3d pt3d;
+				Point2d pts1 = preFeatures.positions[preFrameFeatureIdx];
+				Point2d pts2 = curFeatures.positions[curFrameFeatureIdx];
+				TriangulateSinglePointFromTwoView(pts1, pts2, preFrame.Rt, curFrame.Rt, data.camera_intrinsics, pt3d);
+				registerNewMapPoint(data, pt3d, preFrame, preFrameFeatureIdx, curFrame, curFrameFeatureIdx);
+				count ++;
+			}		
+		}
+	}
+	return;
+}
+
+void CameraPoseEstimator::process(DataManager& data, int frameIdx)
+{
+	if (frameIdx == 0) {
+		setReferenceFramePose(data, frameIdx);
+	}
+	else if (frameIdx == 1) {
+		initialPoseEstimation(data, frameIdx);
+	}
+	else {
+		pnpPoseEstimation(data, frameIdx);
+	}
+	return;
+}
+
+bool CameraPoseEstimator::validationCheck(DataManager& data, int frameIdx) {
 	return true;
 }

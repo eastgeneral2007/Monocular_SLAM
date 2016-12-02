@@ -5,8 +5,8 @@
 //
 // @Jim, Yu
 
-#ifndef MONOCULAR_SLAM_MAPPOINT_H
-#define MONOCULAR_SLAM_MAPPOINT_H
+#ifndef MAPPOINT_H
+#define MAPPOINT_H
 
 #include "Common.h"
 #include "CommonCV.h"
@@ -14,17 +14,17 @@
 class Frame;
 
 class MapPoint {
-
+friend class Util;
 public:
     MapPoint(Point3d worldPosition, int id): worldPosition(worldPosition), id(id) {}
     long unsigned int id; // identifier
     Point3d worldPosition; // 3D world coordinate
-    std::map<Frame*, int> observerToIndex; // map of observing Frame to the index of feature
-
 public:
-    void addObservingFrame(Frame* frame, int featureIdx);
-    int  getFeatureIdxFromObservingFrame(Frame* frame);
-    void deleteObservingFrame(Frame* frame);
+    void addObservingFrame(int frameIdx, int featureIdx);
+    int getFeatureIdxFromObservingFrame(int frameIdx);
+    void deleteObservingFrame(int frameIdx);
+private:
+    map<int, int> observerToIndex; // map of observing Frame to the index of feature
 };
 
 

@@ -28,7 +28,7 @@ struct Features
     Mat descriptors;  // for ORB, each row is of size 32 (128 byte)
     
     /* the map point each feature corresponds to */
-    vector<MapPoint*> mapPoints;
+    vector<int> mapPointsIndices;
 };
 
 struct FrameMeta
