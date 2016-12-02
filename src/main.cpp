@@ -16,14 +16,13 @@
 #include "Pipeline.h"
 #include "FrameLoader.h"
 #include "ORBFeatureExtractor.h"
-#include "InitialCameraMotionEstimator.h"
+#include "CameraPoseEstimator.h"
 #include "PointCloudVisualizer.h"
 
 using namespace std;
 using namespace cv;
 
 int main(int argc, char **argv) {
-
 	AppConfig config;
 	config = parseArgs(argc, argv);
 
@@ -31,13 +30,13 @@ int main(int argc, char **argv) {
 	DataManager dm;
 
 	// Data loading
-	FrameLoader frameLoader(config.inputDirectory, 0, 40);
+	FrameLoader frameLoader(config.inputDirectory, 0, 30);
 	frameLoader.load(dm);
 
 	// Pipeline Initialization
 	ProcessingPipeline ORBSlam;
 	ORBSlam.addStage(new ORBFeatureExtractor());
-	ORBSlam.addStage(new InitialCameraMotionEstimator());
+	ORBSlam.addStage(new CameraPoseEstimator());
 	// ORBSlam.addStage(new PointCloudVisualizer());
 	
 	// launch ORB-slam

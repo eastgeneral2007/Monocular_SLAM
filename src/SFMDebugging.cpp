@@ -94,4 +94,3 @@ bool CheckValidEssential(const Mat& essential) {
 	return fabs(determinant(essential)) < EPSILON;
 }
 
-

@@ -3,25 +3,26 @@
 //
 
 #include "MapPoint.h"
+#include "Frame.h"
 
-void MapPoint::addObservingFrame(Frame* frame, int featureIdx)
+void MapPoint::addObservingFrame(int frameIdx, int featureIdx)
 {
     assert(featureIdx >= 0);
-    observerToIndex[frame] = featureIdx;
+    observerToIndex[frameIdx] = featureIdx;
 }
 
-int MapPoint::getFeatureIdxFromObservingFrame(Frame* frame)
+int MapPoint::getFeatureIdxFromObservingFrame(int frameIdx)
 {
-    if (observerToIndex.find(frame) == observerToIndex.end()) {
+    if (observerToIndex.find(frameIdx) == observerToIndex.end()) {
         return -1;
     }
-    return observerToIndex[frame];
+    return observerToIndex[frameIdx];
 }
 
-void MapPoint::deleteObservingFrame(Frame* frame)
+void MapPoint::deleteObservingFrame(int frameIdx)
 {
-    if (observerToIndex.find(frame) == observerToIndex.end()) {
+    if (observerToIndex.find(frameIdx) == observerToIndex.end()) {
         return;
     }
-    observerToIndex.erase(frame);
+    observerToIndex.erase(frameIdx);
 }
