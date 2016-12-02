@@ -1,5 +1,5 @@
 //
-// InitialCameraMotionEstimator.h
+// CameraPoseEstimator.h
 //
 // This stage performs camera motion estimation
 // for each frame based on the feature matching 
@@ -9,22 +9,21 @@
 //
 // @Yu
 
-#ifndef INITIALCAMERAMOTIONESTIMATOR_H
-#define INITIALCAMERAMOTIONESTIMATOR_H
+#ifndef CAMERAPOSEESTIMATOR_H
+#define CAMERAPOSEESTIMATOR_H
 
 #include "ProcessingNode.h"
 #include "CommonCV.h"
 
-// #define DEBUG_INITIALCAMERAMOTIONESTIMATOR
-
-class InitialCameraMotionEstimator: public ProcessingNode
+class CameraPoseEstimator: public ProcessingNode
 {
 public:
-	InitialCameraMotionEstimator():ProcessingNode("InitialCameraMotionEstimator"), matcher(NORM_HAMMING, true) {}
+	CameraPoseEstimator():ProcessingNode("CameraPoseEstimator"){}
 	virtual void process(DataManager& data, int frameIdx);
 	virtual bool validationCheck(DataManager& data, int frameIdx);
 private:
-	BFMatcher matcher;
+	void initialPoseEstimation(DataManager& data, int frameIdx);
+	void pnpPoseEstimation(DataManager& data, int frameIdx);
 };
 
 #endif

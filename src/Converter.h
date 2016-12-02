@@ -30,9 +30,6 @@ namespace Converter {
     // conversion between Eigen and cv Mat
     Mat eigenMatrixToCvMat(const Eigen::Matrix<double,4,4> &m);
     Eigen::Matrix<double,4,4> cvMatToEigenMatrix(const Mat mat);
-
-    
-
 };
 
 

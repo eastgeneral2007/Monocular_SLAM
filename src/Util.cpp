@@ -14,7 +14,7 @@ using namespace g2o;
 
 typedef BlockSolver< BlockSolverTraits<6, 3> > SLAMBlockSolver;
 typedef LinearSolverEigen<SLAMBlockSolver::PoseMatrixType> SLAMLinearSolver;
-typedef std::map<Frame*, int>::iterator map_frame_iter;
+typedef std::map<int, int>::iterator map_frame_iter;
 
 cv::Mat Util:: ComputeF(Frame f1, Frame f2) {
     return cv::Mat();
@@ -58,12 +58,12 @@ void Util::BundleAdjustment(DataManager &data, vector<Frame> &frames, vector<Map
     // create vertex for MapPoints
     for (int i =0;i<map_points.size();i++) {
         MapPoint *this_map_point = &map_points[i];
-        map<Frame *, int> observations = this_map_point->observerToIndex; // get all observers mapping
+        map<int, int> observations = this_map_point->observerToIndex; // get all observers mapping
 
         map_frame_iter iterator;
         // check if it does not have associated frame in the frame_vertex_id_set
         for (iterator = observations.begin(); iterator != observations.end(); iterator++) {
-            Frame *observer = iterator->first;
+            const Frame *observer = &frames[iterator->first];
             if (frame_vertex_id_set.find(observer->meta.frameID) != frame_vertex_id_set.end()) {
                 break;
             }
@@ -86,10 +86,8 @@ void Util::BundleAdjustment(DataManager &data, vector<Frame> &frames, vector<Map
 
         // for each added MapPoint, create edge from its observers
         for (map_frame_iter iterator = observations.begin(); iterator != observations.end(); iterator++) {
-
-            // iterator->first = Frame *
-            // iterator->second = int
-            Frame *observer = iterator->first;
+            
+            const Frame *observer = &frames[iterator->first];
             int feature_idx = iterator->second;
             // ignore if the observer is not in frame vertexes added
             if (frame_vertex_id_set.find(observer->meta.frameID) != frame_vertex_id_set.end()) {
@@ -172,7 +170,7 @@ void Util::PoseBundleAdjustment(Frame &frame, DataManager &data, int n_round) {
     frame_vertex->setFixed(false);
     optimizer.addVertex(frame_vertex);
 
-    int num_map_points = frame.features.mapPoints.size();
+    int num_map_points = frame.features.mapPointsIndices.size();
     int num_correspondences = 0;
     // keep a reference to the added edges
     vector<g2o::EdgeSE3ProjectXYZOnlyPose * > added_edges;
@@ -180,12 +178,12 @@ void Util::PoseBundleAdjustment(Frame &frame, DataManager &data, int n_round) {
 
     // insert MapPoint as EdgeSE3ProjectXYZOnlyPose
     for (int i =0;i < num_map_points;i++) {
-        MapPoint * this_map_point = frame.features.mapPoints[i];
+        MapPoint * this_map_point = & data.mapPoints[frame.features.mapPointsIndices[i]];
         if (this_map_point != NULL) {
             g2o::EdgeSE3ProjectXYZOnlyPose * e = new g2o::EdgeSE3ProjectXYZOnlyPose();
             num_correspondences ++;
             
-            int corresponding_feature_idx = this_map_point->observerToIndex[&frame];
+            int corresponding_feature_idx = this_map_point->observerToIndex[frame.meta.frameID];
             const cv::Point2f &pos = frame.features.positions[corresponding_feature_idx];
             Eigen::Matrix<double, 2, 1> obs;
             obs << pos.x, pos.y;
