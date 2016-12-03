@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
 	DataManager dm;
 
 	// Data loading
-	FrameLoader frameLoader(config.inputDirectory, 0, 30);
+	FrameLoader frameLoader(config.inputDirectory, 0, 50);
 	frameLoader.load(dm);
 
 	// Pipeline Initialization

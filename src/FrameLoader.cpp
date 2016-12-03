@@ -58,7 +58,8 @@ void loadImgFileList(string directory, int begin_frame, int end_frame, DataManag
     }
 }
 
-void loadCameraIntrinsics(DataManager& data) {
+// Original dataset
+void loadCameraIntrinsics_TUM1(DataManager& data) {
     // TODO: implement a proper loader in the future
     static float fx = 517.306408;
     static float fy = 516.469215;
@@ -74,7 +75,30 @@ void loadCameraIntrinsics(DataManager& data) {
     camera_intrinsics.at<double>(2,2) = 1.f;
 }
 
+// TUM360
+void loadCameraIntrinsics_kinect(DataManager& data) {
+    // TODO: implement a proper loader in the future
+    static float fx = 525.0;
+    static float fy = 525.0;
+    static float cx = 319.5;
+    static float cy = 239.5;
+
+    Mat& camera_intrinsics = data.camera_intrinsics;
+    camera_intrinsics = Mat::zeros(3, 3, CV_64F);
+    camera_intrinsics.at<double>(0,0) = fx;
+    camera_intrinsics.at<double>(0,2) = cx;
+    camera_intrinsics.at<double>(1,1) = fy;
+    camera_intrinsics.at<double>(1,2) = cy;
+    camera_intrinsics.at<double>(2,2) = 1.f;
+}
+
 void FrameLoader::load(DataManager& data) {
-    loadCameraIntrinsics(data);
-	loadImgFileList(directory, begin_frame, end_frame, data);
+    if (directory.find("rgbd_dataset_freiburg1_desk2_secret")!=string::npos)
+    {
+        loadCameraIntrinsics_TUM1(data);
+        loadImgFileList(directory, begin_frame, end_frame, data);
+    }else{
+        loadCameraIntrinsics_kinect(data);
+        loadImgFileList(directory+"/rgb/", begin_frame, end_frame, data);
+    }
 }

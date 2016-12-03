@@ -40,6 +40,7 @@
 .idea/tasks.xml
 .idea/Monocular_SLAM.iml
 .idea/
+data/
 
 # For VS Code
 src/.vscode/
