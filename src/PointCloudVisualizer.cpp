@@ -119,8 +119,10 @@ static Mat RtToWorldT(Mat Rt)
 {
     Mat R = Rt(Range(0,3),Range(0,3));
     Mat t = Rt(Range(0,3),Range(3,4));
+    printMatrix(R, "R");
+    printMatrix(t, "t");
     Mat t_new = R.inv()*t;
-    //printMatrix(t_new, "t_new");
+    printMatrix(t_new, "t_world");
     return t_new;
 }
 
@@ -131,15 +133,15 @@ static void CamPosToCloudRGB(VisPtr viewer, DataManager& data, int frameIdx, Clo
     {
         pre_point = basic_point;
         Mat t = RtToWorldT(data.frames[i].Rt);
-        basic_point.x = (float)t.at<double>(0,3);
-        basic_point.y = (float)t.at<double>(1,3);
-        basic_point.z = (float)t.at<double>(2,3);
+        basic_point.x = (float)t.at<double>(0,1);
+        basic_point.y = (float)t.at<double>(1,1);
+        basic_point.z = (float)t.at<double>(2,1);
         basic_point.r = 220;
         basic_point.g = 30;
         basic_point.b = 30;
-        cout<<"Camera pos: "<<basic_point.x<<","<<basic_point.y<<","<<basic_point.z<<endl;
         basic_cloud_ptr->points.push_back(basic_point);
     }
+    cout<<"Camera pos: "<<basic_point.x<<","<<basic_point.y<<","<<basic_point.z<<endl;
     if (frameIdx > 0)
     {
         viewer->addLine(pre_point, basic_point, 80, 20, 20, to_string(frameIdx), 0);
@@ -155,9 +157,9 @@ static void CamPosToCloudRGBWithGT(VisPtr viewer, DataManager& data, int frameId
     {
         pre_point = basic_point;
         Mat t = RtToWorldT(data.frames[i].Rt);
-        basic_point.x = (float)t.at<double>(0,3);
-        basic_point.y = (float)t.at<double>(1,3);
-        basic_point.z = (float)t.at<double>(2,3);
+        basic_point.x = (float)t.at<double>(0,1);
+        basic_point.y = (float)t.at<double>(1,1);
+        basic_point.z = (float)t.at<double>(2,1);
         basic_point.r = 220;
         basic_point.g = 30;
         basic_point.b = 30;
@@ -172,8 +174,8 @@ static void CamPosToCloudRGBWithGT(VisPtr viewer, DataManager& data, int frameId
         basic_point_gt.b = 30;
         basic_cloud_ptr->points.push_back(basic_point_gt);
     }
-    //cout<<frameIdx-1 << ")\tCamera est. pos: \t"<<basic_point.x<<","<<basic_point.y<<","<<basic_point.z<< "\tVS\t";
-    //cout<<"\ttrue: \t"<<basic_point_gt.x<<","<<basic_point_gt.y<<","<<basic_point_gt.z<<endl;
+    cout<<frameIdx-1 << ")\tCamera est. pos: \t"<<basic_point.x<<","<<basic_point.y<<","<<basic_point.z;
+    //cout<< "\tVS\ttrue: \t"<<basic_point_gt.x<<","<<basic_point_gt.y<<","<<basic_point_gt.z<<endl;
     if (frameIdx > 0)
     {
         viewer->addLine(pre_point, basic_point, 250, 20, 20, to_string(frameIdx), 0);
