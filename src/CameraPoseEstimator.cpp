@@ -400,7 +400,7 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 	curFrame.Rt = Rt;
 
 	// invoke pose Bundle Adjustment here
-	Util::PoseBundleAdjustment(curFrame, data);
+	// Util::PoseBundleAdjustment(curFrame, data);
 
 	// perform triangulation again (but only with the 
 	// previous frame) to populate more map points.

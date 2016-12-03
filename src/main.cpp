@@ -39,8 +39,7 @@ int main(int argc, char **argv) {
 	ProcessingPipeline ORBSlam;
 	ORBSlam.addStage(new ORBFeatureExtractor());
 	ORBSlam.addStage(new CameraPoseEstimator());
-	ORBSlam.addStage(new Optimiser());
-	// ORBSlam.addStage(new PointCloudVisualizer());
+	// ORBSlam.addStage(new Optimiser());
 	ORBSlam.addStage(new TrajectoryVisualizer());
 	ORBSlam.addStage(new PointCloudVisualizer());
 	

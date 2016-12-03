@@ -9,6 +9,10 @@ void Optimiser::process(DataManager& data, int frameIdx)
 	cout << "full BA processing node for frameIdx:" << frameIdx << endl;
 #endif
 		Util::GlobalBundleAdjustemnt(data);
+		
+#ifdef DEBUG_OPTIMISER
+	cout << "finish full BA for frameIdx:" << frameIdx << endl;
+#endif		
 	}
 }
 
