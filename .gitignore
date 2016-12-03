@@ -47,4 +47,5 @@ src/.vscode/
 # For build
 build/*
 
-
+# For VSCode
+.vscode/
