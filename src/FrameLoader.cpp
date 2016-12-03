@@ -116,10 +116,10 @@ void loadGroundTruth(string filename, int begin_frame, int end_frame, DataManage
             //data.frames[frameIdx].RtGt = loadRT(pre_tx, pre_ty, pre_tz, qx, qy, qz, qw);
             data.frames[frameIdx].RtGt = loadRT(tx, ty, tz, qx, qy, qz, qw);
             printf("(%d) %lf VS %lf :  ", frameIdx, time_stamp, time_stamp_gt);
-            cout << data.frames[frameIdx].RtGt.at<double>(0,3) <<", "<<
-                    data.frames[frameIdx].RtGt.at<double>(1,3) <<", "<<
-                    data.frames[frameIdx].RtGt.at<double>(2,3) <<"    VS"  <<
-                    tx << ", "<<ty <<", " <<tz << endl;
+            //cout << data.frames[frameIdx].RtGt.at<double>(0,3) <<", "<<
+            //        data.frames[frameIdx].RtGt.at<double>(1,3) <<", "<<
+            //        data.frames[frameIdx].RtGt.at<double>(2,3) <<"    VS"  <<
+            //        tx << ", "<<ty <<", " <<tz << endl;
             time_stamp = data.frames[++frameIdx].meta.timestamp;
         }
         fin.close();
