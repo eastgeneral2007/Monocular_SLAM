@@ -175,6 +175,7 @@ void Util::PoseBundleAdjustment(Frame &frame, DataManager &data, int n_round) {
     // keep a reference to the added edges
     vector<g2o::EdgeSE3ProjectXYZOnlyPose * > added_edges;
     map<g2o::EdgeSE3ProjectXYZOnlyPose *, bool> is_outlier;
+    added_edges.reserve(num_map_points);
 
     // insert MapPoint as EdgeSE3ProjectXYZOnlyPose
     for (int i =0;i < num_map_points;i++) {
