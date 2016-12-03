@@ -15,6 +15,7 @@
 #include "CommonMath.h"
 #include "ParamConfig.h"
 #include "SFMDebugging.h"
+#include "Util.h"
 
 /**
  * triangulate a single point from two view
@@ -331,6 +332,7 @@ void CameraPoseEstimator::initialPoseEstimation(DataManager& data, int frameIdx)
 			count ++;
 		}
 	}
+
 	return;
 }
 
@@ -397,6 +399,9 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 	Rodrigues(rvec, R); constructRt(R, tvec, Rt);
 	curFrame.Rt = Rt;
 
+	// invoke pose Bundle Adjustment here
+	Util::PoseBundleAdjustment(curFrame, data);
+
 	// perform triangulation again (but only with the 
 	// previous frame) to populate more map points.
 	count = 0;
@@ -424,6 +429,7 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 			}		
 		}
 	}
+
 	return;
 }
 
