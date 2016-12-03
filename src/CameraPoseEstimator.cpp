@@ -175,7 +175,7 @@ static void constructRt(const Mat& R, const Mat& t, Mat& Rt)
 static void matchFeatures(const Mat& descriptors1, const Mat& descriptors2, vector<DMatch>& matches, float ratio = 0.8) 
 {	
 	BFMatcher matcher(NORM_HAMMING, false);
-	vector<vector<DMatch>> raw_matches;
+	vector<vector<DMatch> > raw_matches;
 	matcher.knnMatch(descriptors1, descriptors2, raw_matches, 2);
 
 	// perform ratio test as suggested by by D.Lowe in his paper.
@@ -355,8 +355,8 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 	vector<bool> matched(numCurFeatures); // record features in the current frame already getting matched to avoid duplicated match.
 	vector<Point3d> mapPoints;			  // record 3d point position ...
 	vector<Point2f> imagePoints;		  // and corresponding image coordinates.
-
-	vector<vector<DMatch>> cachedMatches; // cached the match pairs for triangulation later.
+ 
+	vector<vector<DMatch> > cachedMatches; // cached the match pairs for triangulation later.
 	int count = 0;
 	for (int i= frameIdx - 1; i >= 0; i --) 
 	{
@@ -434,6 +434,7 @@ void CameraPoseEstimator::process(DataManager& data, int frameIdx)
 	else {
 		pnpPoseEstimation(data, frameIdx);
 	}
+	data.relative_frame_poses.push_back(data.frames[frameIdx].Rt);
 	return;
 }
 
