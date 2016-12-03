@@ -19,6 +19,7 @@
 #include "CameraPoseEstimator.h"
 #include "PointCloudVisualizer.h"
 #include "Optimiser.h"
+#include "TrajectoryVisualizer.h"
 
 using namespace std;
 using namespace cv;
@@ -31,7 +32,7 @@ int main(int argc, char **argv) {
 	DataManager dm;
 
 	// Data loading
-	FrameLoader frameLoader(config.inputDirectory, 0, 30);
+	FrameLoader frameLoader(config.inputDirectory, 0, 100);
 	frameLoader.load(dm);
 
 	// Pipeline Initialization
@@ -40,6 +41,8 @@ int main(int argc, char **argv) {
 	ORBSlam.addStage(new CameraPoseEstimator());
 	ORBSlam.addStage(new Optimiser());
 	// ORBSlam.addStage(new PointCloudVisualizer());
+	ORBSlam.addStage(new TrajectoryVisualizer());
+	ORBSlam.addStage(new PointCloudVisualizer());
 	
 	// launch ORB-slam
 	vector<Frame>& frames = dm.frames;

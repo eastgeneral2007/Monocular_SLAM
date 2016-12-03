@@ -9,9 +9,9 @@
 #include "PCLUtils.h"
 
 /*
- * Convert From vector<Point3d> to pcl::PointCloud
+ * Convert From vector<cv::Point3d> to pcl::PointCloud
  */
-pcl::PointCloud<pcl::PointXYZ>::Ptr MatToPoinXYZ(vector<Point3d>& opencvPointCloud)
+pcl::PointCloud<pcl::PointXYZ>::Ptr MatToPoinXYZ(vector<cv::Point3d>& opencvPointCloud)
 {
      pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud_ptr(new pcl::PointCloud<pcl::PointXYZ>);
 

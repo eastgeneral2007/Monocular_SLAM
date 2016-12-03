@@ -10,7 +10,7 @@
 #define POINTCLOUDVISUALIZER_H
 
 #include "Common.h"
-#include "CommonCV.h"
+//#include "CommonCV.h"
 #include "CommonBoost.h"
 #include "ProcessingNode.h"
 
@@ -18,7 +18,7 @@ namespace pcl {namespace visualization {class PCLVisualizer;}}
 class PointCloudVisualizer : public ProcessingNode
 {
 public:
-    PointCloudVisualizer():ProcessingNode("PointCloudVisualizer"), viewer(NULL){}
+    PointCloudVisualizer():ProcessingNode("PointCloudVisualizer"){}
     virtual void init();
 	virtual void process(DataManager& data, int frameIdx);
 	virtual bool validationCheck(DataManager& data, int frameIdx);
