@@ -27,6 +27,7 @@ static VisPtr createVisualizer();
 static CloudPtr MapPointsToCloudPtr(const vector<MapPoint>& points);
 static CloudRGB MapPointsToCloudRGB(DataManager& data, int frameIdx);
 static void CamPosToCloudRGB(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & basic_cloud_ptr);
+static void CamPosToCloudRGBWithGT(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & basic_cloud_ptr);
 static PolygonMesh PossionReconstruction(CloudPtr cloud);
 
 #ifdef DEBUG_POINTCLOUD_VISUALIZER
@@ -41,24 +42,23 @@ void PointCloudVisualizer::init()
     viewer = createVisualizer();
 }
 
-
 void PointCloudVisualizer::process(DataManager& data, int frameIdx)
 {
-#ifdef DEBUG_POINTCLOUD_VISUALIZER
-    renderPointCloud(viewer, cloud);
-#else 
     CloudRGB cloudMapPoints(new pcl::PointCloud<pcl::PointXYZRGB>);
-    // TODO:: plot point cloud 
-    // cloudMapPoints = MapPointsToCloudRGB(data, frameIdx);
+    // To plot the scene only
+    cloudMapPoints = MapPointsToCloudRGB(data, frameIdx);
+    
+    // TODO:: Mesh reconstruction from point clouds
     if (cloudMapPoints->width>20)
     {
         // pcl::PolygonMesh triangles = PossionReconstruction(cloud);
-        // viewer->addPolygonMesh(triangles);
+        // viewer->addPolygonMesh(triangles, "polygon", 0);
     }
-    // TODO:: plot camera trajectory
-    CamPosToCloudRGB(viewer, data, frameIdx, cloudMapPoints);
+
+    // To plot the camera trajectory only
+    // CamPosToCloudRGB(viewer, data, frameIdx, cloudMapPoints);        // without ground truth R|t
+    CamPosToCloudRGBWithGT(viewer, data, frameIdx, cloudMapPoints);     // with ground truth R|t
     renderPointCloud(viewer, cloudMapPoints);
-#endif
     viewer->spinOnce (10);
 }
 
@@ -109,27 +109,82 @@ static CloudPtr generateTestCloud()
 }
 #endif
 
+void printMatrix(const cv::Mat &M, std::string matrix)
+{
+    printf("Matrix \"%s\" is %i x %i\n", matrix.c_str(), M.rows, M.cols);
+    std::cout << M << std::endl;
+}
+
+static Mat RtToWorldT(Mat Rt)
+{
+    Mat R = Rt(Range(0,3),Range(0,3));
+    Mat t = Rt(Range(0,3),Range(3,4));
+    printMatrix(R, "R");
+    printMatrix(t, "t");
+    Mat t_new = R.inv()*t;
+    printMatrix(t_new, "t_world");
+    return t_new;
+}
+
 static void CamPosToCloudRGB(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & basic_cloud_ptr)
 {
     pcl::PointXYZRGB basic_point, pre_point;
-    for (int i=0; i<frameIdx; i++)
+    for (int i=0; i<=frameIdx; i++)
     {
         pre_point = basic_point;
-        basic_point.x = data.frames[i].Rt.at<float>(0,3);
-        basic_point.y = data.frames[i].Rt.at<float>(1,3);
-        basic_point.z = data.frames[i].Rt.at<float>(2,3);
+        Mat t = RtToWorldT(data.frames[i].Rt);
+        basic_point.x = (float)t.at<double>(0,1);
+        basic_point.y = (float)t.at<double>(1,1);
+        basic_point.z = (float)t.at<double>(2,1);
         basic_point.r = 220;
         basic_point.g = 30;
         basic_point.b = 30;
-        cout<<"Camera pos: "<<basic_point.x<<","<<basic_point.y<<","<<basic_point.z<<endl;
         basic_cloud_ptr->points.push_back(basic_point);
     }
-    if (frameIdx > 1)
-        viewer->addLine(pre_point, basic_point, to_string(frameIdx), 0);
+    cout<<"Camera pos: "<<basic_point.x<<","<<basic_point.y<<","<<basic_point.z<<endl;
+    if (frameIdx > 0)
+    {
+        viewer->addLine(pre_point, basic_point, 80, 20, 20, to_string(frameIdx), 0);
+    }
     basic_cloud_ptr->width = (int) basic_cloud_ptr->points.size ();
     basic_cloud_ptr->height = 1;
 }
 
+static void CamPosToCloudRGBWithGT(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & basic_cloud_ptr)
+{
+    pcl::PointXYZRGB basic_point, pre_point, basic_point_gt, pre_point_gt;
+    for (int i=0; i<=frameIdx; i++)
+    {
+        pre_point = basic_point;
+        Mat t = RtToWorldT(data.frames[i].Rt);
+        basic_point.x = (float)t.at<double>(0,1);
+        basic_point.y = (float)t.at<double>(1,1);
+        basic_point.z = (float)t.at<double>(2,1);
+        basic_point.r = 220;
+        basic_point.g = 30;
+        basic_point.b = 30;
+        basic_cloud_ptr->points.push_back(basic_point);
+
+        pre_point_gt = basic_point_gt;
+        basic_point_gt.x = (float)data.frames[i].RtGt.at<double>(0,3);
+        basic_point_gt.y = (float)data.frames[i].RtGt.at<double>(1,3);
+        basic_point_gt.z = (float)data.frames[i].RtGt.at<double>(2,3);
+        basic_point_gt.r = 30;
+        basic_point_gt.g = 220;
+        basic_point_gt.b = 30;
+        basic_cloud_ptr->points.push_back(basic_point_gt);
+    }
+    cout<<frameIdx-1 << ")\tCamera est. pos: \t"<<basic_point.x<<","<<basic_point.y<<","<<basic_point.z;
+    //cout<< "\tVS\ttrue: \t"<<basic_point_gt.x<<","<<basic_point_gt.y<<","<<basic_point_gt.z<<endl;
+    if (frameIdx > 0)
+    {
+        viewer->addLine(pre_point, basic_point, 250, 20, 20, to_string(frameIdx), 0);
+        viewer->addLine(pre_point_gt, basic_point_gt, 20, 250, 20, "gt"+to_string(frameIdx), 0);
+    }
+ 
+    basic_cloud_ptr->width = (int) basic_cloud_ptr->points.size ();
+    basic_cloud_ptr->height = 1;
+}
 
 static CloudPtr MapPointsToCloudPtr(const vector<MapPoint>& points)
 {
@@ -181,7 +236,6 @@ static PolygonMesh PossionReconstruction(CloudPtr cloud)
     filter.filter(*filtered);
     cout << "passthrough filter complete" << endl;
     cout << "num of pts: " << filtered->width << endl;
-
     
     cout << "begin moving least squares" << endl;
     MovingLeastSquares<PointXYZ, PointXYZ> mls;
