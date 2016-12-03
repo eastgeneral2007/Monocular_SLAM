@@ -35,7 +35,8 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
 # Find Required Packages
 find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(PCL 1.8 REQUIRED COMPONENTS common io visualization)
+find_package(PCL 1.8 REQUIRED) # COMPONENTS common io visualization possion PassThrough NormalEstimation)
+find_package(CGAL COMPONENTS core)
 add_definitions(${PCL_DEFINITIONS})
 
 # Include File Search Path
@@ -45,6 +46,8 @@ include_directories(
         ${EIGEN3_INCLUDE_DIR}
         ${PROJECT_SOURCE_DIR}/Thirdparty/g2o
 	    ${PCL_INCLUDE_DIRS})
+
+# include(${CGAL_USE_FILE})
 
 # Linked Library Search Path
 link_directories(${PCL_LIBRARY_DIRS})
@@ -59,12 +62,24 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 
 # Source Files
 file(GLOB_RECURSE SOURCE_FILES "src/*.cpp" "src/*.h")
-file(GLOB_RECURSE UNITTEST_FILES "UnitTest/*.cpp" "UnitTest/*.h")
+file(GLOB_RECURSE UNITTESTG2O_FILES "UnitTest/g2o/*.cpp" "UnitTest/g2o/*.h")
+file(GLOB_RECURSE UNITTESTPCL_FILES "UnitTest/pcl/*.cpp" "UnitTest/pcl/*.h")
+# file(GLOB_RECURSE UNITTESTCGAL_FILES "UnitTest/cgal/*.cpp" "UnitTest/cgal/*.h")
 set(TESTING_SOURCES ${SOURCE_FILES})
 list (REMOVE_ITEM TESTING_SOURCES "${PROJECT_SOURCE_DIR}/src/main.cpp")
 
 # Build Targets
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 target_link_libraries(${PROJECT_NAME} ${LINKED_LIBS})
-add_executable(UnitTest ${TESTING_SOURCES} ${UNITTEST_FILES})
-target_link_libraries(UnitTest ${LINKED_LIBS})
+
+# Build UnitTestg2o
+# add_executable(TestG2O ${TESTING_SOURCES} ${UNITTESTG2O_FILES})
+# target_link_libraries(TestG2O ${LINKED_LIBS})
+
+# Build UnitTestpcl
+# add_executable(TestPCL ${TESTING_SOURCES} ${UNITTESTPCL_FILES})
+# target_link_libraries(TestPCL ${LINKED_LIBS})
+
+# Build UnitTestCgal
+# add_executable(TestCGAL ${TESTING_SOURCES} ${UNITTESTCGAL_FILES})
+# target_link_libraries(TestCGAL ${LINKED_LIBS})
