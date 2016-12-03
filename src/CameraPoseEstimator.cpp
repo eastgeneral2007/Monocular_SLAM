@@ -343,6 +343,10 @@ void CameraPoseEstimator::initialPoseEstimation(DataManager& data, int frameIdx)
 void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 {
 	assert(frameIdx > 1);
+
+	// the number of frames to traverse back to find 3d-2d correspondences and 
+	// to triangulate new map points.
+	static const int numBackTraverse = 10; 
 	
 	// traverse in a reverse manner the previous frames
 	// and find matched feature points in the previous
@@ -358,7 +362,7 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
  
 	vector<vector<DMatch> > cachedMatches; // cached the match pairs for triangulation later.
 	int count = 0;
-	for (int i= frameIdx - 1; i >= 0; i --) 
+	for (int i= frameIdx - 1; i >= 0 && i >= frameIdx - numBackTraverse; i --) 
 	{
 		Features& preFeatures = frames[i].features;
 		vector<DMatch> rawMatches;
@@ -396,7 +400,7 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 	// perform triangulation again (but only with the 
 	// previous frame) to populate more map points.
 	count = 0;
-	for (int i= frameIdx - 1; i >= 0; i --)
+	for (int i= frameIdx - 1; i >= 0 && i >= frameIdx - numBackTraverse; i --)
 	{
 		Frame& preFrame = data.frames[i];
 		Features& preFeatures = frames[i].features;
