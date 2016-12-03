@@ -51,7 +51,7 @@ public:
 
     void CorrectLoop();
 
-    void NBestMatches(Mat descriptors1, Mat descriptors2, unsigned int n, vector<vector<float>>& distances, vector<vector<int>>& indices);
+    void NBestMatches(Mat descriptors1, Mat descriptors2, unsigned int n, vector<vector<float> > & distances, vector<vector<int> > & indices);
 
     void TestUnit();
 
