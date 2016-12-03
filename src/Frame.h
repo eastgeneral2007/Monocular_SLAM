@@ -52,6 +52,9 @@ public:
     // Relative R|t matrix
     cv::Mat Rt;
 
+    // Ground truth R|t matrix
+    cv::Mat RtGt;
+
     // features
     Features features;
 
