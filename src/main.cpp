@@ -18,6 +18,7 @@
 #include "ORBFeatureExtractor.h"
 #include "CameraPoseEstimator.h"
 #include "PointCloudVisualizer.h"
+#include "TrajectoryVisualizer.h"
 
 using namespace std;
 using namespace cv;
@@ -37,7 +38,8 @@ int main(int argc, char **argv) {
 	ProcessingPipeline ORBSlam;
 	ORBSlam.addStage(new ORBFeatureExtractor());
 	ORBSlam.addStage(new CameraPoseEstimator());
-	// ORBSlam.addStage(new PointCloudVisualizer());
+	ORBSlam.addStage(new TrajectoryVisualizer());
+	ORBSlam.addStage(new PointCloudVisualizer());
 	
 	// launch ORB-slam
 	vector<Frame>& frames = dm.frames;
