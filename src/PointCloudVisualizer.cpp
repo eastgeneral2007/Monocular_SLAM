@@ -26,7 +26,7 @@ static void renderPointCloud(VisPtr viewer, CloudRGB cloud);
 static VisPtr createVisualizer();
 static CloudPtr MapPointsToCloudPtr(const vector<MapPoint>& points);
 static CloudRGB MapPointsToCloudRGB(DataManager& data, int frameIdx);
-static void CamPosToCloudRGB(DataManager& data, int frameIdx, CloudRGB & basic_cloud_ptr);
+static void CamPosToCloudRGB(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & basic_cloud_ptr);
 static PolygonMesh PossionReconstruction(CloudPtr cloud);
 
 #ifdef DEBUG_POINTCLOUD_VISUALIZER
@@ -56,7 +56,7 @@ void PointCloudVisualizer::process(DataManager& data, int frameIdx)
         // viewer->addPolygonMesh(triangles);
     }
     // TODO:: plot camera trajectory
-    CamPosToCloudRGB(data, frameIdx, cloudMapPoints);
+    CamPosToCloudRGB(viewer, data, frameIdx, cloudMapPoints);
     renderPointCloud(viewer, cloudMapPoints);
 #endif
     viewer->spinOnce (10);
@@ -76,6 +76,7 @@ static VisPtr createVisualizer()
     return (viewer);
 }
 
+// render point cloud
 static void renderPointCloud(VisPtr viewer, CloudRGB cloud)
 {
     if (viewer->contains(CLOUD_NAME)) {
@@ -108,11 +109,12 @@ static CloudPtr generateTestCloud()
 }
 #endif
 
-static void CamPosToCloudRGB(DataManager& data, int frameIdx, CloudRGB & basic_cloud_ptr)
+static void CamPosToCloudRGB(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & basic_cloud_ptr)
 {
+    pcl::PointXYZRGB basic_point, pre_point;
     for (int i=0; i<frameIdx; i++)
     {
-        pcl::PointXYZRGB basic_point;
+        pre_point = basic_point;
         basic_point.x = data.frames[i].Rt.at<float>(0,3);
         basic_point.y = data.frames[i].Rt.at<float>(1,3);
         basic_point.z = data.frames[i].Rt.at<float>(2,3);
@@ -122,6 +124,8 @@ static void CamPosToCloudRGB(DataManager& data, int frameIdx, CloudRGB & basic_c
         cout<<"Camera pos: "<<basic_point.x<<","<<basic_point.y<<","<<basic_point.z<<endl;
         basic_cloud_ptr->points.push_back(basic_point);
     }
+    if (frameIdx > 1)
+        viewer->addLine(pre_point, basic_point, to_string(frameIdx), 0);
     basic_cloud_ptr->width = (int) basic_cloud_ptr->points.size ();
     basic_cloud_ptr->height = 1;
 }
