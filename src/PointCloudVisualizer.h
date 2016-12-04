@@ -23,7 +23,8 @@ public:
 	virtual void process(DataManager& data, int frameIdx);
 	virtual bool validationCheck(DataManager& data, int frameIdx);
 private:
-    boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;
+    boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer;    // for point cloud
+    boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer2;   // for mesh
 };
 
 #endif
