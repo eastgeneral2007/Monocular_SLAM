@@ -29,6 +29,8 @@ struct Features
     
     /* the map point each feature corresponds to */
     vector<int> mapPointsIndices;
+
+    vector<double> scales;
 };
 
 struct FrameMeta

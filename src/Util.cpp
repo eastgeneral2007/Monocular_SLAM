@@ -9,7 +9,7 @@
 #include "ParamConfig.h"
 #include <set>
 
-// #define DEBUG_BA
+#define DEBUG_BA
 #define DEBUG_POSEBA 
 
 using namespace std;
@@ -133,7 +133,7 @@ void Util::BundleAdjustment(DataManager &data, vector<Frame> &frames, vector<Map
             // ignore if the observer not found or is not in frame vertexes added
             if (observer != NULL && frame_vertex_id_set.find(observer->meta.frameID) != frame_vertex_id_set.end()) {
 
-                const cv::Point2f &pos = observer->features.positions[i];
+                const cv::Point2f &pos = observer->features.positions[feature_idx];
 
                 Eigen::Matrix<double, 2, 1> obs;
                 obs << pos.x, pos.y;
@@ -148,14 +148,14 @@ void Util::BundleAdjustment(DataManager &data, vector<Frame> &frames, vector<Map
                 cout << temp_vertex->estimate() << endl;
 #endif                
                 e->setMeasurement(obs);
-                float this_keypoint_scale = 1.0; // TODO: change to the actual scale that this keypoint is detected
+                float this_keypoint_scale = observer->features.scales[feature_idx]; // TODO: change to the actual scale that this keypoint is detected
                 // cout << Eigen::Matrix2d::Identity() * (1.0f/this_keypoint_scale) << endl;
-                e->setInformation(Eigen::Matrix2d::Identity() * this_keypoint_scale);
+                e->setInformation(Eigen::Matrix2d::Identity() * (1.0f/this_keypoint_scale));
 
                 if (b_robust) {
                     g2o::RobustKernelHuber *huber_kernel = new g2o::RobustKernelHuber;
                     e->setRobustKernel(huber_kernel);
-                    huber_kernel->setDelta(THRESH_HUBER);
+                    huber_kernel->setDelta(THRESH_HUBER_FULL_BA);
                 }
 
                 e->fx = data.camera_intrinsics.at<double>(0,0);
@@ -270,7 +270,7 @@ void Util::PoseBundleAdjustment(Frame &frame, DataManager &data, int n_round) {
 
                 e->setVertex(0, dynamic_cast<g2o::OptimizableGraph::Vertex *>(optimizer.vertex(0))); // since only one vertex
                 e->setMeasurement(obs);
-                float this_keypoint_scale = 1.0; // TODO: change to the actual scale that this keypoint is detected
+                float this_keypoint_scale = frame.features.scales[corresponding_feature_idx]; // TODO: change to the actual scale that this keypoint is detected
                 e->setInformation(Eigen::Matrix2d::Identity() * (1.0f/this_keypoint_scale));
 
                 g2o::RobustKernelHuber *huber_kernel = new g2o::RobustKernelHuber;
@@ -357,6 +357,7 @@ void Util::PoseBundleAdjustment(Frame &frame, DataManager &data, int n_round) {
     
 }
 
+// Helper function to find frame with target id, return NULL if not found
 Frame * Util::findFrameById(vector<Frame> &frames, int target_id) {
     for (int i =0; i < frames.size();i++) {
         if (frames[i].meta.frameID == target_id) {
@@ -367,7 +368,7 @@ Frame * Util::findFrameById(vector<Frame> &frames, int target_id) {
     return NULL;
 }
 
-
+// Helper function to find Map Point with target id, return NULL if not found
 MapPoint* Util::findMapPointById(vector<MapPoint> &map_points, int target_id) {
     for (int i =0; i < map_points.size();i++) {
         if (map_points[i].id == target_id) {
@@ -377,3 +378,212 @@ MapPoint* Util::findMapPointById(vector<MapPoint> &map_points, int target_id) {
 
     return NULL;
 }
+
+
+// Helper function to load frames from .csv files
+vector<Frame> Util::loadFrames(string frame_filename) {
+    vector<Frame> frames;
+	ifstream frame_instream(frame_filename); // ios::binary | ios::ate will just read the size for tellg() to work!
+    cout << "frame_filename:" << frame_filename << endl;
+	string nextline;
+	string token;
+    while ( !frame_instream.eof()) {
+		// for one frame
+        Frame f;        
+        cv::Mat Rt = Mat::zeros(3,4, CV_64F);
+        
+        // read, id, Rt
+        getline(frame_instream, nextline);
+        cout << "line read in:\n" << nextline << endl;
+        if (nextline.length() == 0) {
+            continue;
+        }
+        ostringstream out; // hold space dilimited input
+		istringstream is(nextline);
+		while (getline(is, token, ',')) {
+				out<<token<<" ";
+		}
+		istringstream is_with_space(out.str());
+        is_with_space >> f.meta.frameID ;
+        // R
+        is_with_space >> Rt.at<double>(0, 0);
+        is_with_space >> Rt.at<double>(0, 1);
+        is_with_space >> Rt.at<double>(0, 2);
+        is_with_space >> Rt.at<double>(1, 0);
+        is_with_space >> Rt.at<double>(1, 1);
+        is_with_space >> Rt.at<double>(1, 2);
+        is_with_space >> Rt.at<double>(2, 0);
+        is_with_space >> Rt.at<double>(2, 1);
+        is_with_space >> Rt.at<double>(2, 2);
+        // t
+        is_with_space >> Rt.at<double>(0, 3);
+        is_with_space >> Rt.at<double>(1, 3);
+        is_with_space >> Rt.at<double>(2, 3);
+        f.Rt = Rt;
+
+        cout << "f.Rt:\n" << f.Rt<< endl;
+        // read features
+        while(getline(frame_instream, nextline) && nextline != "") {
+            ostringstream out; // hold space dilimited input
+            istringstream is(nextline);
+            while (getline(is, token, ',')) {
+                    out<<token<<" ";
+            }
+            istringstream is_with_space(out.str());
+            double x, y, sigma;
+            is_with_space >> x;
+            is_with_space >> y; 
+            is_with_space >> sigma;
+            f.features.positions.push_back(cv::Point2d(x, y));
+            f.features.scales.push_back(sigma);                        
+        }
+
+        // read map_points_indices
+        while(getline(frame_instream, nextline) && nextline != "") {
+            istringstream is(nextline); // nextline will be just a int index
+            int this_map_id;
+            is >> this_map_id;
+            f.features.mapPointsIndices.push_back(this_map_id);
+        }
+
+        // add to results
+        frames.push_back(f);
+    }
+
+    frame_instream.close();
+    return frames;
+}
+
+
+// Helper function to load map points from .csv files
+vector<MapPoint> Util::loadMapPoints(string map_points_filename) {
+    vector<MapPoint> map_points;
+	ifstream map_instream(map_points_filename);
+	string nextline;
+	string token;
+    while ( !map_instream.eof()) {
+		// for one map point        
+        Point3d this_world_pos;
+        int id;
+        // read, id, world position
+        getline(map_instream, nextline);
+        if (nextline.length() == 0) {
+            continue;// if empty, then skip
+        }
+        ostringstream out; // hold space dilimited input
+		istringstream is(nextline);
+		while (getline(is, token, ',')) {
+				out<<token<<" ";
+		}
+		istringstream is_with_space(out.str());
+        is_with_space >> id;
+        is_with_space >> this_world_pos.x;
+        is_with_space >> this_world_pos.y;
+        is_with_space >> this_world_pos.z;
+        MapPoint this_map_point(this_world_pos, id);
+
+        // read observer to index
+        while(getline(map_instream, nextline) && nextline != "") {
+            ostringstream out; // hold space dilimited input
+            istringstream is(nextline);
+            while (getline(is, token, ',')) {
+                    out<<token<<" ";
+            }
+            istringstream is_with_space(out.str());
+            int observer_idx, corr_feature_idx;
+            is_with_space >> observer_idx;
+            is_with_space >> corr_feature_idx;
+            this_map_point.addObservingFrame(observer_idx, corr_feature_idx);
+        }
+
+        // add to results
+        map_points.push_back(this_map_point);
+    }
+
+    map_instream.close();
+    return map_points;
+}
+
+// load only frame id + Optimised Rt from .csv files
+vector<Frame> Util::loadFramesOnlyIdRt(string frame_filename) {
+    vector<Frame> frames;
+	ifstream frame_instream(frame_filename);
+    cout << "frame_filename:" << frame_filename << endl; 
+	string nextline;
+	string token;
+    while ( !frame_instream.eof()) {
+		// for one frame
+        Frame f;        
+        cv::Mat Rt = Mat::zeros(3,4, CV_64F);
+        
+        // read, id, Rt
+        getline(frame_instream, nextline);
+        cout << "line read:\n" << nextline << endl;
+        if (nextline.length() == 0) {
+            continue;// if empty, then skip
+        }
+        ostringstream out; // hold space dilimited input
+		istringstream is(nextline);
+		while (getline(is, token, ',')) {
+				out<<token<<" ";
+		}
+		istringstream is_with_space(out.str());
+        is_with_space >> f.meta.frameID ;
+        // R
+        is_with_space >> Rt.at<double>(0, 0);
+        is_with_space >> Rt.at<double>(0, 1);
+        is_with_space >> Rt.at<double>(0, 2);
+        is_with_space >> Rt.at<double>(1, 0);
+        is_with_space >> Rt.at<double>(1, 1);
+        is_with_space >> Rt.at<double>(1, 2);
+        is_with_space >> Rt.at<double>(2, 0);
+        is_with_space >> Rt.at<double>(2, 1);
+        is_with_space >> Rt.at<double>(2, 2);
+        // t
+        is_with_space >> Rt.at<double>(0, 3);
+        is_with_space >> Rt.at<double>(1, 3);
+        is_with_space >> Rt.at<double>(2, 3);
+        f.Rt = Rt;
+
+        // add to results
+        frames.push_back(f);
+    }
+    frame_instream.close();
+    return frames;
+}
+
+// load only mappoint id + Optimised XYZ from .csv files
+vector<MapPoint> Util::loadMapPointsOnlyIdXYZ(string map_points_filename) {
+    vector<MapPoint> map_points;
+	ifstream map_instream(map_points_filename);
+	string nextline;
+	string token;
+    while ( !map_instream.eof()) {
+		// for one map point        
+        Point3d this_world_pos;
+        int id;
+        // read, id, world position
+        getline(map_instream, nextline);
+        if (nextline.length() == 0) {
+            continue;// if empty, then skip
+        }
+        ostringstream out; // hold space dilimited input
+		istringstream is(nextline);
+		while (getline(is, token, ',')) {
+				out<<token<<" ";
+		}
+        
+		istringstream is_with_space(out.str());
+        is_with_space >> id;
+        is_with_space >> this_world_pos.x;
+        is_with_space >> this_world_pos.y;
+        is_with_space >> this_world_pos.z;
+        MapPoint this_map_point(this_world_pos, id);
+        
+        map_points.push_back(this_map_point);
+    }
+
+    map_instream.close();
+    return map_points;
+}
+

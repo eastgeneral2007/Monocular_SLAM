@@ -21,7 +21,7 @@ public:
                                  int n_iterations = 5, bool pb_stop_flag = false, const unsigned long n_loop_kf = 0,
                                  const bool b_robust = true);
 
-    void static GlobalBundleAdjustemnt(DataManager & data, int n_iterations = 5, bool pb_stop_flag= false, const unsigned long n_loop_kf=0,
+    void static GlobalBundleAdjustemnt(DataManager & data, int n_iterations = 10, bool pb_stop_flag= false, const unsigned long n_loop_kf=0,
                                        const bool b_robust = true);
 
     void static LocalBundleAdjustment(Frame* frame, bool *pb_stop_flag, DataManager & data);
@@ -34,9 +34,18 @@ public:
     static Frame* findFrameById(vector<Frame> &frames, int target_id);
     static MapPoint* findMapPointById(vector<MapPoint> &map_points, int target_id);
 
-    // load temporary Frames and MapPoints for testing
-    vector<Frame> static loadFrames(string key_frame_filename);
-    vector<MapPoint> static loadMapPointsAndAssociateFrames(string map_points_filename, vector<Frame>);
+    /*
+    load temporary Frames and MapPoints for testing 
+    **/
+    // Helper function to load frames from .csv files
+    static vector<Frame> loadFrames(string frame_filename);
+    // Helper function to load map points from .csv files
+    static vector<MapPoint> loadMapPoints(string map_points_filename);
+    // load only frame id + Optimised Rt from .csv files
+    static vector<Frame> loadFramesOnlyIdRt(string frame_filename);
+    // load only mappoint id + Optimised XYZ from .csv files
+    static vector<MapPoint> loadMapPointsOnlyIdXYZ(string map_points_filename);
+
 };
 
 
