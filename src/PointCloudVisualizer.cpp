@@ -48,7 +48,7 @@ void PointCloudVisualizer::process(DataManager& data, int frameIdx)
 {
     CloudRGB cloudMapPoints(new pcl::PointCloud<pcl::PointXYZRGB>);
     // To plot the scene only
-    // cloudMapPoints = MapPointsToCloudRGB(data, frameIdx);
+    cloudMapPoints = MapPointsToCloudRGB(data, frameIdx);
     
     // TODO:: Mesh reconstruction from point clouds
     if (cloudMapPoints->width>20)
@@ -182,8 +182,7 @@ static void CamPosToCloudRGBWithGT(VisPtr viewer, DataManager& data, int frameId
         basic_point_gt.b = 30;
         basic_cloud_ptr->points.push_back(basic_point_gt);
     }
-    cout<<frameIdx-1 << ")\tCamera est. pos: \t"<<basic_point.x<<","<<basic_point.y<<","<<basic_point.z;
-    cout<< "\tVS\tGT: \t"<<basic_point_gt.x<<","<<basic_point_gt.y<<","<<basic_point_gt.z<<endl;
+    cout<<"Camera pos: "<<basic_point.x<<","<<basic_point.y<<","<<basic_point.z<<endl;
     if (frameIdx > 0)
     {
         viewer->addLine(pre_point, basic_point, 250, 20, 20, to_string(frameIdx), 0);

@@ -9,7 +9,9 @@
 //
 // @Yu
 
-// #define DEBUG_CameraPoseEstimator
+// #define DEBUG_CameraPoseEstimator_SanityCheck
+#define DEBUG_CameraPoseEstimator_VisualizeMatching
+// #define DEBUG_CameraPoseEstimator_VisualizeEpipolarline
 
 #include "CameraPoseEstimator.h"
 #include "CommonMath.h"
@@ -59,7 +61,9 @@ static bool TriangulateSinglePointFromTwoView(const Point2d& pts1, const Point2d
 	if (countFront) {
 		Mat pc1 = Rt1*X.t();
 		Mat pc2 = Rt2*X.t();
-		if (pc1.at<double>(2)>0 && pc2.at<double>(2)>0) return true;
+		if (pc1.at<double>(2)>0 && pc2.at<double>(2)>0) {
+			return true;
+		}
 		else return false;
 	}
 	return true;
@@ -84,6 +88,7 @@ static int TriangulateMultiplePointsFromTwoView(const vector<Point2d>& pts1, con
 		if (front) count++;
 		result.push_back(point3d);
 	}
+
 	if (!countFront) return 0;
 	else return count;
 }
@@ -201,9 +206,7 @@ static void associateFeatureWithMapPoint(DataManager& data, int mapPointIndex,
 /**
  * set pose of the reference frame (the first frame).
  */
-static void setReferenceFramePose(DataManager& data, int frameIdx)
-{
-	assert(frameIdx==0);
+static void setReferenceFramePose(DataManager& data, int frameIdx) {
 	data.frames[frameIdx].Rt = Mat::eye(3,4,CV_64F);
 }
 
@@ -230,9 +233,9 @@ static void registerNewMapPoint(DataManager& data, Point3d pos,
 void CameraPoseEstimator::initialPoseEstimation(DataManager& data, int frameIdx)
 {
 	// fetch references
-	assert(frameIdx == 1);
+	const static int step = 10;
 	Frame& curFrame = data.frames[frameIdx];
-	Frame& preFrame = data.frames[frameIdx-1];
+	Frame& preFrame = data.frames[frameIdx-step];
 	vector<Point2d>& positions1 = preFrame.features.positions;
 	vector<Point2d>& positions2 = curFrame.features.positions;
 	vector<int>& mapPointsIndices1=  preFrame.features.mapPointsIndices;
@@ -245,11 +248,6 @@ void CameraPoseEstimator::initialPoseEstimation(DataManager& data, int frameIdx)
 	vector<DMatch> matches;
 	matchFeatures(descriptors1, descriptors2, matches, FEATURE_MATCH_RATIO_TEST);
 
-#ifdef DEBUG_CameraPoseEstimator
-	visualizeFeatureMatching(preFrame.frameBuffer, curFrame.frameBuffer, positions1, positions2, matches);
-	waitKey(0);
-#endif
-
 	// compute fundamental matrix
 	Mat F;
 	vector<Point2d> goodPositions1;
@@ -258,7 +256,17 @@ void CameraPoseEstimator::initialPoseEstimation(DataManager& data, int frameIdx)
 	computeFundamentalMatrix(positions1, positions2, matches, goodPositions1, goodPositions2, F, status);
 	F.convertTo(F, CV_64F);
 
-#ifdef DEBUG_CameraPoseEstimator
+#ifdef DEBUG_CameraPoseEstimator_VisualizeMatching
+	vector<DMatch> selectedMatches;
+	for (int i=0; i<status.size(); i++) {
+		if (status[i]) {
+			selectedMatches.push_back(matches[i]);
+		}
+	}
+	visualizeFeatureMatching(preFrame.frameBuffer, curFrame.frameBuffer, positions1, positions2, selectedMatches);
+#endif
+
+#ifdef DEBUG_CameraPoseEstimator_VisualizeEpipolarline
 	const Mat& preImge = preFrame.frameBuffer;
 	const Mat& curImge = curFrame.frameBuffer;
 	drawEpipolarLine(F, preImge, curImge);
@@ -268,62 +276,45 @@ void CameraPoseEstimator::initialPoseEstimation(DataManager& data, int frameIdx)
 	Mat E; 
 	computeEssentialMatrix(F, K, E);
 
-#ifdef DEBUG_CameraPoseEstimator
-	if (!CheckValidEssential(E)) {
+#ifdef DEBUG_CameraPoseEstimator_SanityCheck
+	if (!CheckValxidEssential(E)) {
 		std::cout << "Essential matrix is not valid!" << std::endl;
 	}
 #endif
 
-	// extract R,t from the essential matrix
-	// select two possible (R,t) pairs from the four
-	// possible solutions for which the determinant of R is 
-	// positive.
-	vector<Mat> Rs(4);
-	vector<Mat> Ts(4);
-	ExtractRTfromE(E,  Rs[0], Rs[1], Ts[0], Ts[1]);
-	ExtractRTfromE(Mat(-E), Rs[2], Rs[3], Ts[2], Ts[3]);
-	Mat R1, R2, T1, T2;
-	for (int i=0; i<4; i++) {
-		if(determinant(Rs[i])>0) {
-			if (R1.empty()) {
-				R1 = Rs[i];
-				T1 = Ts[i];
-			}
-			else if (R2.empty()) {
-				R2 = Rs[i];
-				T2 = Ts[i];
-				break;				
-			}
-		}
-	}
+	// extract R/t from E.
 
-#ifdef DEBUG_CameraPoseEstimator
+	Mat R1, R2, T1, T2;
+	ExtractRTfromE(E, R1, R2, T1, T2);
+	if (abs(determinant(R1) + 1.0) < EPSILON) {
+		E = -E;
+		ExtractRTfromE(E, R1, R2, T1, T2);
+	}
+#ifdef DEBUG_CameraPoseEstimator_SanityCheck
 	if (!CheckValidRotation(R1) || !CheckValidRotation(R2)) {
 		std::cout << "Rotation is not valid!" << std::endl;
 	}
 #endif
-
-	// triangulate both points and only keeps the R|t with which
-	// the largest number of points visible in front of the camera.
-	Mat Rt1, Rt2;
-	constructRt(R1, T1, Rt1);
-	constructRt(R2, T2, Rt2);
+	Mat Rts[4];
+	constructRt(R1, T1, Rts[0]); constructRt(R1, T2, Rts[1]);
+	constructRt(R2, T1, Rts[2]); constructRt(R2, T2, Rts[3]);
 	Mat I = Mat::eye(3,4, CV_64F);
-	vector<Point3d> result1;
-	int count0 = TriangulateMultiplePointsFromTwoView(goodPositions1, goodPositions2, I, Rt1, K, result1, true);
-	vector<Point3d> result2;
-	int count1 = TriangulateMultiplePointsFromTwoView(goodPositions1, goodPositions2, I, Rt2, K, result2, true);
+	int bestRtIndex = -1;
+	int maxCount = -1;
+	vector<Point3d> result;
+	for (int i=0; i < 4; i++) {
+		vector<Point3d> tmpResult;
+		Mat Rt = Rts[i];
+		int count = TriangulateMultiplePointsFromTwoView(goodPositions1, goodPositions2, I, Rt, K, tmpResult, true);
+		cout << count << " of " << goodPositions1.size() << " 3D points are in front of the camera." << endl;
+		if (maxCount < count) {
+			maxCount = count;
+			bestRtIndex = i;
+			result = tmpResult;
+		}
+	}
+	curFrame.Rt = Rts[bestRtIndex];
 
-	vector<Point3d>* resultPtr;
-	if (count0 > count1) {
-		curFrame.Rt = Rt1;
-		resultPtr = &result1;
-	}
-	else {
-		curFrame.Rt = Rt2;
-		resultPtr = &result2;
-	}
-	vector<Point3d> &result = *resultPtr;
 	// associate each feature points with triangulated points
 	int count = 0;
 	for (int i=0; i<matches.size(); i++) {
@@ -344,8 +335,6 @@ void CameraPoseEstimator::initialPoseEstimation(DataManager& data, int frameIdx)
  */
 void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 {
-	assert(frameIdx > 1);
-
 	// the number of frames to traverse back to find 3d-2d correspondences and 
 	// to triangulate new map points.
 	static const int numBackTraverse = 10; 
@@ -435,10 +424,10 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 
 void CameraPoseEstimator::process(DataManager& data, int frameIdx)
 {
-	if (frameIdx == 0) {
+	if (frameIdx <10 ) {
 		setReferenceFramePose(data, frameIdx);
 	}
-	else if (frameIdx == 1) {
+	else if (frameIdx == 10) {
 		initialPoseEstimation(data, frameIdx);
 	}
 	else {
