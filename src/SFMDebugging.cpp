@@ -55,11 +55,11 @@ static void drawEpipolarLineCallback(int event, int x, int y, int flags, void* u
 		 keypoints1.push_back(KeyPoint(pos1[i].x, pos1[i].y, 1));
 	 }
 	 vector<KeyPoint> keypoints2;
-	 for (int i = 0; i < pos1.size(); i++) {
+	 for (int i = 0; i < pos2.size(); i++) {
 		 keypoints2.push_back(KeyPoint(pos2[i].x, pos2[i].y, 1));
 	 }
 	 Mat outImg;
-	 drawMatches(img1, keypoints1, img2, keypoints2, matches, outImg);
+ 	 drawMatches(img1, keypoints1, img2, keypoints2, matches, outImg);
 	 imshow("feature matching", outImg);
 	 waitKey();
 	 if (autoDestroy) {

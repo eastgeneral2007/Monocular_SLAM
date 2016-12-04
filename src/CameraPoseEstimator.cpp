@@ -10,7 +10,7 @@
 // @Yu
 
 // #define DEBUG_CameraPoseEstimator_SanityCheck
-#define DEBUG_CameraPoseEstimator_VisualizeMatching
+// #define DEBUG_CameraPoseEstimator_VisualizeMatching
 // #define DEBUG_CameraPoseEstimator_VisualizeEpipolarline
 
 #include "CameraPoseEstimator.h"
@@ -233,9 +233,8 @@ static void registerNewMapPoint(DataManager& data, Point3d pos,
 void CameraPoseEstimator::initialPoseEstimation(DataManager& data, int frameIdx)
 {
 	// fetch references
-	const static int step = 10;
 	Frame& curFrame = data.frames[frameIdx];
-	Frame& preFrame = data.frames[frameIdx-step];
+	Frame& preFrame = data.frames[frameIdx-1];
 	vector<Point2d>& positions1 = preFrame.features.positions;
 	vector<Point2d>& positions2 = curFrame.features.positions;
 	vector<int>& mapPointsIndices1=  preFrame.features.mapPointsIndices;
@@ -337,7 +336,7 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 {
 	// the number of frames to traverse back to find 3d-2d correspondences and 
 	// to triangulate new map points.
-	static const int numBackTraverse = 10; 
+	static const int numBackTraverse = 1; 
 	
 	// traverse in a reverse manner the previous frames
 	// and find matched feature points in the previous
@@ -359,6 +358,9 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 		vector<DMatch> rawMatches;
 		matchFeatures(curFeatures.descriptors, preFeatures.descriptors, rawMatches);
 		cachedMatches.push_back(rawMatches);
+#ifdef DEBUG_CameraPoseEstimator_VisualizeMatching
+		vector<DMatch> selectedMatches;
+#endif
 		for (int j=0; j < rawMatches.size(); j++) 
 		{
 			int curFrameFeatureIdx = rawMatches[j].queryIdx;
@@ -368,6 +370,9 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 				count ++;
 				matched[curFrameFeatureIdx] = true;
 
+#ifdef DEBUG_CameraPoseEstimator_VisualizeMatching
+			    selectedMatches.push_back(rawMatches[j]);
+#endif
 				int mapPointIdx = preFeatures.mapPointsIndices[preFrameFeatureIdx];
 				associateFeatureWithMapPoint(data, mapPointIdx, curFrame, curFrameFeatureIdx);
 
@@ -377,6 +382,10 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 				if (count == numCurFeatures) break;
 			}
 		}
+
+#ifdef DEBUG_CameraPoseEstimator_VisualizeMatching
+		visualizeFeatureMatching(curFrame.frameBuffer, data.frames[i].frameBuffer, curFeatures.positions, preFeatures.positions, rawMatches);
+#endif
 		if (count == numCurFeatures) break;
 	}
 
@@ -424,10 +433,10 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 
 void CameraPoseEstimator::process(DataManager& data, int frameIdx)
 {
-	if (frameIdx <10 ) {
+	if (frameIdx == 0 ) {
 		setReferenceFramePose(data, frameIdx);
 	}
-	else if (frameIdx == 10) {
+	else if (frameIdx == 1) {
 		initialPoseEstimation(data, frameIdx);
 	}
 	else {
