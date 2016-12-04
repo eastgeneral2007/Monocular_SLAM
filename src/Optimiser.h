@@ -4,7 +4,7 @@
 
 class Optimiser : public ProcessingNode {
 public:
-    // add any local variable needed
+    // add any local variable needed, temporary change to avoid being deleted
 
 public:
     // Constructor
