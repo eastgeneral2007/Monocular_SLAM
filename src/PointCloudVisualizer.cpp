@@ -19,7 +19,7 @@ typedef pcl::PointCloud<pcl::PointXYZRGB>::Ptr CloudRGB;
 typedef boost::shared_ptr<pcl::visualization::PCLVisualizer> VisPtr;
 
 #define ShowOrbSlam
-//#define ShowGroundTruth
+// #define ShowGroundTruth
 
 const static char* TITLE_NAME = "3D Visualizer";
 const static char* CLOUD_NAME = "map points";
