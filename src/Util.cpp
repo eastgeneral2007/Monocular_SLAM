@@ -9,7 +9,7 @@
 #include "ParamConfig.h"
 #include <set>
 
-#define DEBUG_BA
+// #define DEBUG_BA
 #define DEBUG_POSEBA 
 
 using namespace std;
