@@ -62,6 +62,34 @@ void loadImgFileList(string directory, int begin_frame, int end_frame, DataManag
     }
 }
 
+void loadDepthFileList(string directory, int begin_frame, int end_frame, DataManager& data, int step) {
+    if (directory.back()!='/') {
+        directory += '/';
+    }
+
+    DIR *pDIR;
+    int index=0;
+    struct dirent *entry;
+    vector<Frame> imgNamelist;
+    if( (pDIR=opendir(directory.c_str())) !=NULL){
+        while((entry = readdir(pDIR))!= NULL){
+            if( has_suffix(entry->d_name, ".png") || has_suffix(entry->d_name, ".jpg") ) {
+                imgNamelist.push_back(parseImgRawFileName(directory, entry->d_name));
+                index++;
+            }
+        }
+        closedir(pDIR);
+    }
+    sort(imgNamelist.begin(), imgNamelist.end());
+    
+    int count = 0;
+    for (int i=begin_frame; i<MIN(end_frame, imgNamelist.size()); i+=step){
+        Mat depthImage = imread(imgNamelist[i].meta.framename, CV_LOAD_IMAGE_ANYDEPTH);
+        depthImage.convertTo(depthImage, CV_32F); 
+        data.frames[count++].depthBuffer = depthImage;
+    }
+}
+
 Mat loadRT(double tx, double ty, double tz, double qx, double qy, double qz, double qw)
 {
     Mat Rt = Mat::zeros(3,4,CV_64F);
@@ -103,7 +131,7 @@ void loadGroundTruth(string filename, int begin_frame, int end_frame, DataManage
         fin.getline(str, 256);
         sscanf(str, "%lf %lf %lf %lf %lf %lf %lf %lf", &time_stamp_gt, &tx, &ty, &tz, &qx, &qy, &qz, &qw);
 
-        while (!fin.eof() && frameIdx < data.frames.size()-1)
+        while (!fin.eof() && frameIdx <= data.frames.size()-1)
         {
             while (time_stamp >= time_stamp_gt+0.02)
             {
@@ -118,7 +146,10 @@ void loadGroundTruth(string filename, int begin_frame, int end_frame, DataManage
             //        data.frames[frameIdx].RtGt.at<double>(1,3) <<", "<<
             //        data.frames[frameIdx].RtGt.at<double>(2,3) <<"    VS"  <<
             //        tx << ", "<<ty <<", " <<tz << endl;
-            time_stamp = data.frames[++frameIdx].meta.timestamp;
+            if (frameIdx < data.frames.size()-1)
+                time_stamp = data.frames[++frameIdx].meta.timestamp;
+            else
+                frameIdx++;
         }
         fin.close();
     }else{
@@ -170,5 +201,6 @@ void FrameLoader::load(DataManager& data) {
         loadCameraIntrinsics_kinect(data);
         loadImgFileList(directory+"/rgb/", begin_frame, end_frame, data, step);
         loadGroundTruth(directory+"/groundtruth.txt/", begin_frame, end_frame, data);
+        loadDepthFileList(directory+"/depth/", begin_frame, end_frame, data, step);
     }
 }

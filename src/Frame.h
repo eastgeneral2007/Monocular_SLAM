@@ -48,6 +48,7 @@ public:
 
     // Frame info, pixel info
     RawBuffer frameBuffer;
+    RawBuffer depthBuffer;
 
     // Relative R|t matrix
     cv::Mat Rt;
