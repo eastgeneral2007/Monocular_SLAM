@@ -9,6 +9,7 @@
 //
 // @Yu
 
+// #define DEBUG_CameraPoseEstimator_VisualizeGoodFeatures
 // #define DEBUG_CameraPoseEstimator_SanityCheck
 // #define DEBUG_CameraPoseEstimator_VisualizeMatching
 // #define DEBUG_CameraPoseEstimator_VisualizeEpipolarline
@@ -265,6 +266,10 @@ void CameraPoseEstimator::initialPoseEstimation(DataManager& data, int frameIdx)
 	visualizeFeatureMatching(preFrame.frameBuffer, curFrame.frameBuffer, positions1, positions2, selectedMatches);
 #endif
 
+#ifdef DEBUG_CameraPoseEstimator_VisualizeGoodFeatures
+	visualizeFeature(curFrame.frameBuffer, goodPositions2);
+#endif
+
 #ifdef DEBUG_CameraPoseEstimator_VisualizeEpipolarline
 	const Mat& preImge = preFrame.frameBuffer;
 	const Mat& curImge = curFrame.frameBuffer;
@@ -332,11 +337,12 @@ void CameraPoseEstimator::initialPoseEstimation(DataManager& data, int frameIdx)
  * This routine is used for pose estimation for the rest all
  * frames, except the first two frames.
  */
+#define FILTERING_WITH_F
 void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 {
 	// the number of frames to traverse back to find 3d-2d correspondences and 
 	// to triangulate new map points.
-	static const int numBackTraverse = 1; 
+	static const int numBackTraverse = 3; 
 	
 	// traverse in a reverse manner the previous frames
 	// and find matched feature points in the previous
@@ -357,6 +363,20 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 		Features& preFeatures = frames[i].features;
 		vector<DMatch> rawMatches;
 		matchFeatures(curFeatures.descriptors, preFeatures.descriptors, rawMatches);
+
+		// use epipolar constraint to filter out good matches
+#ifdef FILTERING_WITH_F
+		vector<Point2d> tmp0, tmp1; Mat tmp2;
+		vector<unsigned char> status;
+		computeFundamentalMatrix(curFeatures.positions, preFeatures.positions, 
+								 rawMatches, tmp0, tmp1, tmp2, status);
+		int count0 = 0;
+		for(int j=0; j<status.size(); j++) {
+			if (status[j]) rawMatches[count0++] = rawMatches[j];
+		}
+		rawMatches.resize(count0);
+		// cout << "removed " << (int)status.size() - count0 << " outliers" << endl;
+#endif
 		cachedMatches.push_back(rawMatches);
 #ifdef DEBUG_CameraPoseEstimator_VisualizeMatching
 		vector<DMatch> selectedMatches;
@@ -384,7 +404,7 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 		}
 
 #ifdef DEBUG_CameraPoseEstimator_VisualizeMatching
-		visualizeFeatureMatching(curFrame.frameBuffer, data.frames[i].frameBuffer, curFeatures.positions, preFeatures.positions, rawMatches);
+		visualizeFeatureMatching(curFrame.frameBuffer, data.frames[i].frameBuffer, curFeatures.positions, preFeatures.positions, selectedMatches);
 #endif
 		if (count == numCurFeatures) break;
 	}
@@ -402,7 +422,7 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 
 	// perform triangulation again (but only with the 
 	// previous frame) to populate more map points.
-	count = 0;
+  	count = 0;
 	for (int i= frameIdx - 1; i >= 0 && i >= frameIdx - numBackTraverse; i --)
 	{
 		Frame& preFrame = data.frames[i];

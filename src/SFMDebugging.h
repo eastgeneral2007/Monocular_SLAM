@@ -27,6 +27,13 @@ void drawEpipolarLine(const Mat& F, const Mat& img1, const Mat& img2, bool autoD
 							   const vector<DMatch>& matches,
 							   bool autoDestroy = true);
 
+ /**
+  * visualizeFeature
+  * 
+  * visualize the feature on an image
+  */
+ void visualizeFeature(const Mat& img, const vector<Point2d>& pos, bool autoDestroy = true);
+
 /**
  * check whether a rotation matrix is valid (determinant =1)
  */

@@ -68,6 +68,27 @@ static void drawEpipolarLineCallback(int event, int x, int y, int flags, void* u
  }
 
 
+ /**
+  * visualizeFeature
+  * 
+  * visualize the feature on an image
+  */
+void visualizeFeature(const Mat& img, const vector<Point2d>& pos, bool autoDestroy)
+{
+	vector<KeyPoint> keypoints;
+	for (int i = 0; i < pos.size(); i++) {
+		keypoints.push_back(KeyPoint(pos[i].x, pos[i].y, 1));
+	}
+	Mat visualization;
+	drawKeypoints(img, keypoints, visualization, Scalar::all(-1), DrawMatchesFlags::DEFAULT);
+	imshow("Keypoint", visualization);
+	waitKey();
+	if (autoDestroy) {
+		destroyWindow("Keypoint");
+	}
+}
+
+
 /**
  * drawEpipolarLine
  * 
