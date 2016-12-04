@@ -8,6 +8,8 @@
 
 #include "TrajectoryVisualizer.h"
 using namespace cv;
+extern void printMatrix(const cv::Mat &M, std::string matrix);
+extern void RtToWorldT(const Mat &Rt, Mat &t_res);
 
 // Draw text on image
 void drawState(Mat &img, string msg, int row = 1) {
@@ -18,7 +20,6 @@ void drawState(Mat &img, string msg, int row = 1) {
     Scalar color(250, 30, 30);
     putText(img, msg.c_str(), org, fontFace, fontScale, color, thickness);
 }
-
 
 // Draw odometry map on image
 void drawOdometryMap(DataManager& data, int frameIdx, int size_p, double map_range, int row = 1) {
@@ -36,13 +37,14 @@ void drawOdometryMap(DataManager& data, int frameIdx, int size_p, double map_ran
     
     Mat roi(img, Rect(base_x, base_y, size_p, size_p));
     roi = background_color;
-
-    Point3f curr_loc( data.frames[frameIdx].Rt.at<double>(0,3), 
-                      data.frames[frameIdx].Rt.at<double>(1,3), 
-                      data.frames[frameIdx].Rt.at<double>(2,3));
-    Point3f prev_loc( data.frames[frameIdx-1].Rt.at<double>(0,3), 
-                      data.frames[frameIdx-1].Rt.at<double>(1,3), 
-                      data.frames[frameIdx-1].Rt.at<double>(2,3));
+    
+    Mat t, t_pre;
+    Mat Rt = data.frames[frameIdx].Rt;
+    Mat Rt_pre = data.frames[frameIdx-1].Rt;
+    RtToWorldT(Rt, t);
+    RtToWorldT(Rt_pre, t_pre);
+    Point3f curr_loc( t.at<double>(0,0), t.at<double>(1,0), t.at<double>(2,0));
+    Point3f prev_loc( t_pre.at<double>(0,0), t_pre.at<double>(1,0), t_pre.at<double>(2,0));
 
     for (int i = 0; i <= frameIdx; ++i) {
         double dx = data.frames[i].Rt.at<double>(0,3) - curr_loc.x;

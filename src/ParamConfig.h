@@ -2,7 +2,7 @@
 #define PARAM_CONFIG_H
 
 // feature matching
-const static float FEATURE_MATCH_RATIO_TEST = 0.8f;
+const static float FEATURE_MATCH_RATIO_TEST = 0.85f;
 
 // adjustable parameters for huber cost function
 const float THRESH_HUBER_FULL_BA = sqrt(5.99);

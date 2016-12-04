@@ -14,7 +14,7 @@
  * The usr click a point on the right image, the corresponding 
  * epipolar line in the right image will be drawn.
  */
-void drawEpipolarLine(const Mat& F, const Mat& img1, const Mat& img2);
+void drawEpipolarLine(const Mat& F, const Mat& img1, const Mat& img2, bool autoDestroy = true);
 
 /**
  * visualizeFeatureMatching
@@ -24,7 +24,15 @@ void drawEpipolarLine(const Mat& F, const Mat& img1, const Mat& img2);
  */
  void visualizeFeatureMatching(const Mat& img1, const Mat& img2, 
  							   const vector<Point2d>& pos1, const vector<Point2d>& pos2, 
-							   const vector<DMatch>& matches);
+							   const vector<DMatch>& matches,
+							   bool autoDestroy = true);
+
+ /**
+  * visualizeFeature
+  * 
+  * visualize the feature on an image
+  */
+ void visualizeFeature(const Mat& img, const vector<Point2d>& pos, bool autoDestroy = true);
 
 /**
  * check whether a rotation matrix is valid (determinant =1)
