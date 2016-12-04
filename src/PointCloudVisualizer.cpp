@@ -122,10 +122,10 @@ void RtToWorldT(const Mat &Rt, Mat &t_res)
     Mat R,t;
     Rt(Range(0,3),Range(0,3)).copyTo(R);
     Rt(Range(0,3),Range(3,4)).copyTo(t);
-    //printMatrix(R, "R");
-    //printMatrix(t, "t");
     Mat t_new = R.inv()*t;
     t_new.copyTo(t_res);
+    //printMatrix(R, "R");
+    //printMatrix(t, "t");
     //printMatrix(t_res, "t_world");
 }
 
@@ -161,10 +161,13 @@ static void CamPosToCloudRGBWithGT(VisPtr viewer, DataManager& data, int frameId
     {
         pre_point = basic_point;
         Mat Rt = data.frames[i].Rt;
-        //double M[3][4] = {{1,0,0,0},{0,0.5, 0.8660,0},{0,-0.8660, 0.5, 1}};
-        //Mat Rt = Mat(3, 4, CV_64F, M);
+        //double M1[3][4] = {{1,0,0,0},{0,0.5, 0.8660,0},{0,-0.8660, 0.5, 1}};
+        //double M1[3][4] = {{0.5000, 0.8660, 0,0},{ -0.8660  ,  0.5000 ,0,0},{0,0,1, 1}};
+        //double M2[3][4] = {{0.500,0,   -0.8660,0},{ 0  ,  1.0000,         0,-1},{0.8660 ,        0,    0.5000,0}};
+        //Mat Rt = Mat(3, 4, CV_64F, M1);
         Mat t;
         RtToWorldT(Rt,t);
+        
         basic_point.x = t.at<double>(0,0);
         basic_point.y = t.at<double>(1,0);
         basic_point.z = t.at<double>(2,0);
@@ -182,8 +185,8 @@ static void CamPosToCloudRGBWithGT(VisPtr viewer, DataManager& data, int frameId
         basic_point_gt.b = 30;
         basic_cloud_ptr->points.push_back(basic_point_gt);
     }
-    cout<<frameIdx-1 << ")\tCamera est. pos: \t"<<basic_point.x<<","<<basic_point.y<<","<<basic_point.z;
-    cout<< "\tVS\tGT: \t"<<basic_point_gt.x<<","<<basic_point_gt.y<<","<<basic_point_gt.z<<endl;
+    // cout<<frameIdx-1 << ")\tCamera est. pos: \t"<<basic_point.x<<","<<basic_point.y<<","<<basic_point.z;
+    // cout<< "\tVS\tGT: \t"<<basic_point_gt.x<<","<<basic_point_gt.y<<","<<basic_point_gt.z<<endl;
     if (frameIdx > 0)
     {
         viewer->addLine(pre_point, basic_point, 250, 20, 20, to_string(frameIdx), 0);

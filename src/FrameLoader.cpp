@@ -29,7 +29,7 @@ Frame parseImgRawFileName(string directory, string filename)
     return f;
 }
 
-void loadImgFileList(string directory, int begin_frame, int end_frame, DataManager& data) {
+void loadImgFileList(string directory, int begin_frame, int end_frame, DataManager& data, int step) {
     if (directory.back()!='/') {
         directory += '/';
     }
@@ -49,7 +49,7 @@ void loadImgFileList(string directory, int begin_frame, int end_frame, DataManag
     }
     sort(imgNamelist.begin(), imgNamelist.end());
 
-    for (int i=begin_frame; i<MIN(end_frame, imgNamelist.size()); i++){
+    for (int i=begin_frame; i<MIN(end_frame, imgNamelist.size()); i+=step){
         Frame f;
         FrameMeta& meta = f.meta;
         meta.timestamp=imgNamelist[i].meta.timestamp;
@@ -167,10 +167,10 @@ void FrameLoader::load(DataManager& data) {
     if (directory.find("rgbd_dataset_freiburg1_desk2_secret")!=string::npos)
     {
         loadCameraIntrinsics_TUM1(data);
-        loadImgFileList(directory, begin_frame, end_frame, data);
+        loadImgFileList(directory, begin_frame, end_frame, data, step);
     }else{
         loadCameraIntrinsics_kinect(data);
-        loadImgFileList(directory+"/rgb/", begin_frame, end_frame, data);
+        loadImgFileList(directory+"/rgb/", begin_frame, end_frame, data, step);
         loadGroundTruth(directory+"/groundtruth.txt/", begin_frame, end_frame, data);
     }
 }
