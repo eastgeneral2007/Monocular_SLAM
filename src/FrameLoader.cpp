@@ -79,7 +79,7 @@ Mat loadRT(double tx, double ty, double tz, double qx, double qy, double qz, dou
     Rt.at<double>(0,3) = tx;
     Rt.at<double>(1,3) = ty;
     Rt.at<double>(2,3) = tz;
-    return Rt;
+    return Rt.clone();
 }
 
 void loadGroundTruth(string filename, int begin_frame, int end_frame, DataManager& data) {
@@ -115,7 +115,7 @@ void loadGroundTruth(string filename, int begin_frame, int end_frame, DataManage
             }
             //data.frames[frameIdx].RtGt = loadRT(pre_tx, pre_ty, pre_tz, qx, qy, qz, qw);
             data.frames[frameIdx].RtGt = loadRT(tx, ty, tz, qx, qy, qz, qw);
-            printf("(%d) %lf VS %lf :  ", frameIdx, time_stamp, time_stamp_gt);
+            //printf("(%d) %lf VS %lf :  ", frameIdx, time_stamp, time_stamp_gt);
             //cout << data.frames[frameIdx].RtGt.at<double>(0,3) <<", "<<
             //        data.frames[frameIdx].RtGt.at<double>(1,3) <<", "<<
             //        data.frames[frameIdx].RtGt.at<double>(2,3) <<"    VS"  <<

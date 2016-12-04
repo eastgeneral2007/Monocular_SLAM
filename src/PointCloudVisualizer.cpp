@@ -29,6 +29,8 @@ static CloudRGB MapPointsToCloudRGB(DataManager& data, int frameIdx);
 static void CamPosToCloudRGB(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & basic_cloud_ptr);
 static void CamPosToCloudRGBWithGT(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & basic_cloud_ptr);
 static PolygonMesh PossionReconstruction(CloudPtr cloud);
+void printMatrix(const cv::Mat &M, std::string matrix);
+void RtToWorldT(const Mat &Rt, Mat &t_res);
 
 #ifdef DEBUG_POINTCLOUD_VISUALIZER
 static CloudPtr cloud;
@@ -46,7 +48,7 @@ void PointCloudVisualizer::process(DataManager& data, int frameIdx)
 {
     CloudRGB cloudMapPoints(new pcl::PointCloud<pcl::PointXYZRGB>);
     // To plot the scene only
-    cloudMapPoints = MapPointsToCloudRGB(data, frameIdx);
+    // cloudMapPoints = MapPointsToCloudRGB(data, frameIdx);
     
     // TODO:: Mesh reconstruction from point clouds
     if (cloudMapPoints->width>20)
@@ -115,15 +117,16 @@ void printMatrix(const cv::Mat &M, std::string matrix)
     std::cout << M << std::endl;
 }
 
-static Mat RtToWorldT(Mat Rt)
+void RtToWorldT(const Mat &Rt, Mat &t_res)
 {
-    Mat R = Rt(Range(0,3),Range(0,3));
-    Mat t = Rt(Range(0,3),Range(3,4));
-    printMatrix(R, "R");
-    printMatrix(t, "t");
+    Mat R,t;
+    Rt(Range(0,3),Range(0,3)).copyTo(R);
+    Rt(Range(0,3),Range(3,4)).copyTo(t);
+    //printMatrix(R, "R");
+    //printMatrix(t, "t");
     Mat t_new = R.inv()*t;
-    printMatrix(t_new, "t_world");
-    return t_new;
+    t_new.copyTo(t_res);
+    //printMatrix(t_res, "t_world");
 }
 
 static void CamPosToCloudRGB(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & basic_cloud_ptr)
@@ -132,10 +135,11 @@ static void CamPosToCloudRGB(VisPtr viewer, DataManager& data, int frameIdx, Clo
     for (int i=0; i<=frameIdx; i++)
     {
         pre_point = basic_point;
-        Mat t = RtToWorldT(data.frames[i].Rt);
-        basic_point.x = (float)t.at<double>(0,1);
-        basic_point.y = (float)t.at<double>(1,1);
-        basic_point.z = (float)t.at<double>(2,1);
+        Mat t;
+        RtToWorldT(data.frames[i].Rt, t);
+        basic_point.x = (float)t.at<double>(0,0);
+        basic_point.y = (float)t.at<double>(1,0);
+        basic_point.z = (float)t.at<double>(2,0);
         basic_point.r = 220;
         basic_point.g = 30;
         basic_point.b = 30;
@@ -156,26 +160,30 @@ static void CamPosToCloudRGBWithGT(VisPtr viewer, DataManager& data, int frameId
     for (int i=0; i<=frameIdx; i++)
     {
         pre_point = basic_point;
-        Mat t = RtToWorldT(data.frames[i].Rt);
-        basic_point.x = (float)t.at<double>(0,1);
-        basic_point.y = (float)t.at<double>(1,1);
-        basic_point.z = (float)t.at<double>(2,1);
+        Mat Rt = data.frames[i].Rt;
+        //double M[3][4] = {{1,0,0,0},{0,0.5, 0.8660,0},{0,-0.8660, 0.5, 1}};
+        //Mat Rt = Mat(3, 4, CV_64F, M);
+        Mat t;
+        RtToWorldT(Rt,t);
+        basic_point.x = t.at<double>(0,0);
+        basic_point.y = t.at<double>(1,0);
+        basic_point.z = t.at<double>(2,0);
         basic_point.r = 220;
         basic_point.g = 30;
         basic_point.b = 30;
         basic_cloud_ptr->points.push_back(basic_point);
 
         pre_point_gt = basic_point_gt;
-        basic_point_gt.x = (float)data.frames[i].RtGt.at<double>(0,3);
-        basic_point_gt.y = (float)data.frames[i].RtGt.at<double>(1,3);
-        basic_point_gt.z = (float)data.frames[i].RtGt.at<double>(2,3);
+        basic_point_gt.x = data.frames[i].RtGt.at<double>(0,3);
+        basic_point_gt.y = data.frames[i].RtGt.at<double>(1,3);
+        basic_point_gt.z = data.frames[i].RtGt.at<double>(2,3);
         basic_point_gt.r = 30;
         basic_point_gt.g = 220;
         basic_point_gt.b = 30;
         basic_cloud_ptr->points.push_back(basic_point_gt);
     }
     cout<<frameIdx-1 << ")\tCamera est. pos: \t"<<basic_point.x<<","<<basic_point.y<<","<<basic_point.z;
-    //cout<< "\tVS\ttrue: \t"<<basic_point_gt.x<<","<<basic_point_gt.y<<","<<basic_point_gt.z<<endl;
+    cout<< "\tVS\tGT: \t"<<basic_point_gt.x<<","<<basic_point_gt.y<<","<<basic_point_gt.z<<endl;
     if (frameIdx > 0)
     {
         viewer->addLine(pre_point, basic_point, 250, 20, 20, to_string(frameIdx), 0);
