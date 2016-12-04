@@ -35,7 +35,6 @@ static void drawEpipolarLineCallback(int event, int x, int y, int flags, void* u
 			drawLine(img2, abc.at<double>(0), abc.at<double>(1), abc.at<double>(2));
 			drawPoint(img1, Point(x,y));
 			imshow2("visualization",img1, img2);
-			waitKey();
 		}
     }
 }
@@ -48,20 +47,46 @@ static void drawEpipolarLineCallback(int event, int x, int y, int flags, void* u
  */
  void visualizeFeatureMatching(const Mat& img1, const Mat& img2, 
  							   const vector<Point2d>& pos1, const vector<Point2d>& pos2, 
-							   const vector<DMatch>& matches)
+							   const vector<DMatch>& matches,
+							   bool autoDestroy)
  {
 	 vector<KeyPoint> keypoints1;
 	 for (int i = 0; i < pos1.size(); i++) {
 		 keypoints1.push_back(KeyPoint(pos1[i].x, pos1[i].y, 1));
 	 }
 	 vector<KeyPoint> keypoints2;
-	 for (int i = 0; i < pos1.size(); i++) {
+	 for (int i = 0; i < pos2.size(); i++) {
 		 keypoints2.push_back(KeyPoint(pos2[i].x, pos2[i].y, 1));
 	 }
 	 Mat outImg;
-	 drawMatches(img1, keypoints1, img2, keypoints2, matches, outImg);
+ 	 drawMatches(img1, keypoints1, img2, keypoints2, matches, outImg);
 	 imshow("feature matching", outImg);
+	 waitKey();
+	 if (autoDestroy) {
+		 destroyWindow("feature matching");
+	 }
  }
+
+
+ /**
+  * visualizeFeature
+  * 
+  * visualize the feature on an image
+  */
+void visualizeFeature(const Mat& img, const vector<Point2d>& pos, bool autoDestroy)
+{
+	vector<KeyPoint> keypoints;
+	for (int i = 0; i < pos.size(); i++) {
+		keypoints.push_back(KeyPoint(pos[i].x, pos[i].y, 1));
+	}
+	Mat visualization;
+	drawKeypoints(img, keypoints, visualization, Scalar::all(-1), DrawMatchesFlags::DEFAULT);
+	imshow("Keypoint", visualization);
+	waitKey();
+	if (autoDestroy) {
+		destroyWindow("Keypoint");
+	}
+}
 
 
 /**
@@ -70,7 +95,7 @@ static void drawEpipolarLineCallback(int event, int x, int y, int flags, void* u
  * The usr click a point on the right image, the corresponding 
  * epipolar line in the right image will be drawn.
  */
-void drawEpipolarLine(const Mat& F, const Mat& img1, const Mat& img2)
+void drawEpipolarLine(const Mat& F, const Mat& img1, const Mat& img2, bool autoDestroy)
 {
 	Mat img1_visualization = img1.clone();
 	Mat img2_visualization = img2.clone();
@@ -78,6 +103,9 @@ void drawEpipolarLine(const Mat& F, const Mat& img1, const Mat& img2)
 	DrawEpipolarLineUserData userData(&img1_visualization, &img2_visualization, &F);
 	setMouseCallback("visualization", drawEpipolarLineCallback, &userData);
 	waitKey();
+	if (autoDestroy) {
+		destroyWindow("visualization");
+	}
 }
 
 /**

@@ -18,7 +18,7 @@
 #include "ORBFeatureExtractor.h"
 #include "CameraPoseEstimator.h"
 #include "PointCloudVisualizer.h"
-#include "Optimiser.h"
+// #include "Optimiser.h"
 #include "TrajectoryVisualizer.h"
 
 using namespace std;
@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
 	DataManager dm;
 
 	// Data loading
-	int begin_frame = 0, end_frame = 200, step = 5;
+	int begin_frame = 0, end_frame = 200, step = 2;
 	FrameLoader frameLoader(config.inputDirectory, begin_frame, end_frame, step);
 	frameLoader.load(dm);
 
