@@ -20,6 +20,7 @@ void ORBFeatureExtractor::process(DataManager& data, int frameIdx) {
 	frame.features.descriptors = descriptor;
 	for (int i=0; i<keypoints.size(); i++) {
 		frame.features.positions.push_back(keypoints[i].pt);
+		frame.features.scales.push_back((double)(keypoints[i].size));
 	}
 	frame.features.mapPointsIndices.resize(keypoints.size(), -1);
 
