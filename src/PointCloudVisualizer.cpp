@@ -48,7 +48,7 @@ void PointCloudVisualizer::process(DataManager& data, int frameIdx)
 {
     CloudRGB cloudMapPoints(new pcl::PointCloud<pcl::PointXYZRGB>);
     // To plot the scene only
-    // cloudMapPoints = MapPointsToCloudRGB(data, frameIdx);
+    cloudMapPoints = MapPointsToCloudRGB(data, frameIdx);
     
     // TODO:: Mesh reconstruction from point clouds
     if (cloudMapPoints->width>20)
@@ -129,6 +129,29 @@ void RtToWorldT(const Mat &Rt, Mat &t_res)
     //printMatrix(t_res, "t_world");
 }
 
+void DrawCamera(VisPtr viewer, const Mat &Rt, int frameIdx)
+{
+    Mat x = Mat(3,1,CV_64F); x.at<double>(0,0) = 0.3; 
+    Mat y = Mat(3,1,CV_64F); y.at<double>(1,0) = 0.3; 
+    Mat z = Mat(3,1,CV_64F); z.at<double>(2,0) = 0.3; 
+    Mat R = Rt(Range(0,3), Range(0,3));
+
+    Mat t;
+    RtToWorldT(Rt,t);
+    PointXYZ curr_pos(t.at<double>(0,0),t.at<double>(1,0),t.at<double>(2,0));
+    
+    Mat x1 = R * x + t;
+    Mat y1 = R * y + t;
+    Mat z1 = R * z + t;
+    
+    PointXYZ x_axis(x1.at<double>(0,0),x1.at<double>(1,0),x1.at<double>(2,0));
+    PointXYZ y_axis(y1.at<double>(0,0),y1.at<double>(1,0),y1.at<double>(2,0));
+    PointXYZ z_axis(z1.at<double>(0,0),z1.at<double>(1,0),z1.at<double>(2,0));
+    viewer->addLine(curr_pos, x_axis, 255, 0, 0,  "arrowx"+to_string(frameIdx), 0);
+    viewer->addLine(curr_pos, y_axis, 0, 255, 0,  "arrowy"+to_string(frameIdx), 0);
+    viewer->addLine(curr_pos, z_axis, 0, 0, 255,  "arrowz"+to_string(frameIdx), 0);
+}
+
 static void CamPosToCloudRGB(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & basic_cloud_ptr)
 {
     pcl::PointXYZRGB basic_point, pre_point;
@@ -191,6 +214,7 @@ static void CamPosToCloudRGBWithGT(VisPtr viewer, DataManager& data, int frameId
     {
         viewer->addLine(pre_point, basic_point, 250, 20, 20, to_string(frameIdx), 0);
         viewer->addLine(pre_point_gt, basic_point_gt, 20, 250, 20, "gt"+to_string(frameIdx), 0);
+        DrawCamera(viewer, data.frames[frameIdx].Rt, frameIdx);
     }
  
     basic_cloud_ptr->width = (int) basic_cloud_ptr->points.size ();
