@@ -34,8 +34,8 @@ static void CamPosToCloudRGBWithGT(VisPtr viewer, DataManager& data, int frameId
 static void DepthToCloudRGB_VOPose(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & basic_cloud_ptr);
 static void DepthToCloudRGB_GTPose(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & basic_cloud_ptr);
 static PolygonMesh PossionReconstruction(CloudPtr cloud);
-void printMatrix(const cv::Mat &M, std::string matrix);
-void RtToWorldT(const Mat &Rt, Mat &t_res);
+void printMatrix(Mat &M, std::string matrix);
+void RtToWorldT(Mat &Rt, Mat &t_res);
 
 #ifdef DEBUG_POINTCLOUD_VISUALIZER
 static CloudPtr cloud;
@@ -128,13 +128,13 @@ static CloudPtr generateTestCloud()
 }
 #endif
 
-void printMatrix(const cv::Mat &M, std::string matrix)
+void printMatrix(cv::Mat &M, std::string matrix)
 {
     printf("Matrix \"%s\" is %i x %i\n", matrix.c_str(), M.rows, M.cols);
     std::cout << M << std::endl;
 }
 
-void RtToWorldT(const Mat &Rt, Mat &t_res)
+void RtToWorldT(Mat &Rt, Mat &t_res)
 {
     Mat R,t;
     Rt(Range(0,3),Range(0,3)).copyTo(R);
@@ -146,27 +146,39 @@ void RtToWorldT(const Mat &Rt, Mat &t_res)
     //printMatrix(t_res, "t_world");
 }
 
-void RtToWorldRT(const Mat& Rt, Mat &Rt_new)
+void RtToWorldRT(Mat& Rt, Mat &Rt_res)
 {
+    Mat Rt_new = Mat::zeros(3,4,CV_64F);
+    Rt.copyTo(Rt_new);
     Mat R,t;
     Rt(Range(0,3),Range(0,3)).copyTo(R);
     Rt(Range(0,3),Range(3,4)).copyTo(t);
     Mat t_new = -R.inv()*t;
-    Rt_new = Mat(3,4,CV_64F);
-    R.copyTo(Rt_new.colRange(0,3).rowRange(0,3));
-    t_new.copyTo(Rt_new.colRange(0,3).rowRange(3,4));
+    t_new.copyTo(Rt_new(Range(0,3),Range(3,4)));
+    //printMatrix(Rt, "Rt_camera_ori");
+    //printMatrix(R, "R");
+    //printMatrix(t_new, "t_new");
+    //printMatrix(Rt_new, "Rt_new");
+    Rt_new.copyTo(Rt_res);
 }
 
-void DrawCamera(VisPtr viewer, const Mat &Rt, int frameIdx, string flag)
+void DrawCamera(VisPtr viewer, Mat Rt, int frameIdx, string flag)
 {
     double dist = 0.3;
     double scale = 0.5;
     Mat x = Mat(3,1,CV_64F); x.at<double>(0,0) = dist; 
     Mat y = Mat(3,1,CV_64F); y.at<double>(1,0) = dist; 
     Mat z = Mat(3,1,CV_64F); z.at<double>(2,0) = dist; 
-    Mat R = Rt(Range(0,3), Range(0,3));
-    Mat t = Rt(Range(0,3), Range(3,4));
-    
+    Mat R = Mat(3,3,CV_64F);
+    Mat t = Mat(3,1,CV_64F);
+    Rt(Range(0,3), Range(0,3)).copyTo(R);
+    if (flag == "2")
+    {
+        Rt(Range(0,3), Range(3,4)).copyTo(t);
+    }else if (flag == "1"){
+        RtToWorldT(Rt,t);
+    }
+   
     PointXYZ curr_pos(t.at<double>(0,0),t.at<double>(1,0),t.at<double>(2,0));
     
     Mat dx = R * x;
@@ -240,10 +252,6 @@ static void CamPosToCloudRGBWithGT(VisPtr viewer, DataManager& data, int frameId
         #ifdef ShowOrbSlam
         pre_point = basic_point;
         Mat Rt = data.frames[i].Rt;
-        //double M1[3][4] = {{1,0,0,0},{0,0.5, 0.8660,0},{0,-0.8660, 0.5, 1}};
-        //double M1[3][4] = {{0.5000, 0.8660, 0,0},{ -0.8660  ,  0.5000 ,0,0},{0,0,1, 1}};
-        //double M2[3][4] = {{0.500,0,   -0.8660,0},{ 0  ,  1.0000,         0,-1},{0.8660 ,        0,    0.5000,0}};
-        //Mat Rt = Mat(3, 4, CV_64F, M1);
         Mat t;
         RtToWorldT(Rt,t);
         
@@ -276,15 +284,15 @@ static void CamPosToCloudRGBWithGT(VisPtr viewer, DataManager& data, int frameId
         #ifdef ShowOrbSlam
         // VO_estimated
         viewer->addLine(pre_point, basic_point, 250, 20, 20, to_string(frameIdx), 0);
-        RtToWorldRT(data.frames[frameIdx].Rt, Rt_world);
+        Rt_world = data.frames[frameIdx].Rt;
+        // RtToWorldRT(data.frames[frameIdx].Rt, Rt_world);
         DrawCamera(viewer, Rt_world, frameIdx, "1");
         #endif
 
         #ifdef ShowGroundTruth
         // Ground truth
         viewer->addLine(pre_point_gt, basic_point_gt, 20, 250, 20, "gt"+to_string(frameIdx), 0);
-        Rt_world = data.frames[frameIdx].RtGt;
-        DrawCamera(viewer, Rt_world, frameIdx, "2");
+        DrawCamera(viewer, data.frames[frameIdx].RtGt, frameIdx, "2");
         #endif
     }
  

@@ -8,8 +8,8 @@
 
 #include "TrajectoryVisualizer.h"
 using namespace cv;
-extern void printMatrix(const cv::Mat &M, std::string matrix);
-extern void RtToWorldT(const Mat &Rt, Mat &t_res);
+extern void printMatrix(Mat &M, std::string matrix);
+extern void RtToWorldT(Mat &Rt, Mat &t_res);
 
 // Draw text on image
 void drawState(Mat &img, string msg, int row = 1) {
