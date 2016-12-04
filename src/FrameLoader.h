@@ -5,6 +5,10 @@
 // and feed them into frames.
 //
 // @Yu
+#include <string.h>
+#include <iostream>
+#include "DataManager.h"
+using namespace std;
 
 class FrameLoader
 {
