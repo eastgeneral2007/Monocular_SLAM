@@ -131,25 +131,53 @@ void RtToWorldT(const Mat &Rt, Mat &t_res)
 
 void DrawCamera(VisPtr viewer, const Mat &Rt, int frameIdx)
 {
-    Mat x = Mat(3,1,CV_64F); x.at<double>(0,0) = 0.3; 
-    Mat y = Mat(3,1,CV_64F); y.at<double>(1,0) = 0.3; 
-    Mat z = Mat(3,1,CV_64F); z.at<double>(2,0) = 0.3; 
+    double dist = 0.3;
+    double scale = 0.5;
+    Mat x = Mat(3,1,CV_64F); x.at<double>(0,0) = dist; 
+    Mat y = Mat(3,1,CV_64F); y.at<double>(1,0) = dist; 
+    Mat z = Mat(3,1,CV_64F); z.at<double>(2,0) = dist; 
     Mat R = Rt(Range(0,3), Range(0,3));
 
     Mat t;
     RtToWorldT(Rt,t);
     PointXYZ curr_pos(t.at<double>(0,0),t.at<double>(1,0),t.at<double>(2,0));
     
-    Mat x1 = R * x + t;
-    Mat y1 = R * y + t;
-    Mat z1 = R * z + t;
+    Mat dx = R * x;
+    Mat dy = R * y;
+    Mat dz = R * z;
+
+    Mat x1 = dx + t;
+    Mat y1 = dy + t;
+    Mat z1 = dz + t;
     
     PointXYZ x_axis(x1.at<double>(0,0),x1.at<double>(1,0),x1.at<double>(2,0));
     PointXYZ y_axis(y1.at<double>(0,0),y1.at<double>(1,0),y1.at<double>(2,0));
     PointXYZ z_axis(z1.at<double>(0,0),z1.at<double>(1,0),z1.at<double>(2,0));
-    viewer->addLine(curr_pos, x_axis, 255, 0, 0,  "arrowx"+to_string(frameIdx), 0);
-    viewer->addLine(curr_pos, y_axis, 0, 255, 0,  "arrowy"+to_string(frameIdx), 0);
-    viewer->addLine(curr_pos, z_axis, 0, 0, 255,  "arrowz"+to_string(frameIdx), 0);
+
+    // x,y,z axis
+    viewer->addLine(curr_pos, x_axis, 255, 0, 0,  "axis_x"+to_string(frameIdx), 0);
+    viewer->addLine(curr_pos, y_axis, 0, 255, 0,  "axis_y"+to_string(frameIdx), 0);
+    viewer->addLine(curr_pos, z_axis, 0, 0, 255,  "axis_z"+to_string(frameIdx), 0);
+
+    // camera base plane
+    Mat rect1 = ( dx + dy)*scale + t;
+    Mat rect2 = ( dx - dy)*scale + t;
+    Mat rect3 = (-dx - dy)*scale + t;
+    Mat rect4 = (-dx + dy)*scale + t;
+    PointXYZ l1(rect1.at<double>(0,0),rect1.at<double>(1,0),rect1.at<double>(2,0));
+    PointXYZ l2(rect2.at<double>(0,0),rect2.at<double>(1,0),rect2.at<double>(2,0));
+    PointXYZ l3(rect3.at<double>(0,0),rect3.at<double>(1,0),rect3.at<double>(2,0));
+    PointXYZ l4(rect4.at<double>(0,0),rect4.at<double>(1,0),rect4.at<double>(2,0));
+    viewer->addLine(l1, l2, 0, 255, 0,  "l1"+to_string(frameIdx), 0);
+    viewer->addLine(l2, l3, 0, 255, 0,  "l2"+to_string(frameIdx), 0);
+    viewer->addLine(l3, l4, 0, 255, 0,  "l3"+to_string(frameIdx), 0);
+    viewer->addLine(l4, l1, 0, 255, 0,  "l4"+to_string(frameIdx), 0);
+
+    // square pyramid lines
+    viewer->addLine(l1, z_axis, 0, 255, 0,  "z1"+to_string(frameIdx), 0);
+    viewer->addLine(l2, z_axis, 0, 255, 0,  "z2"+to_string(frameIdx), 0);
+    viewer->addLine(l3, z_axis, 0, 255, 0,  "z3"+to_string(frameIdx), 0);
+    viewer->addLine(l4, z_axis, 0, 255, 0,  "z4"+to_string(frameIdx), 0);
 }
 
 static void CamPosToCloudRGB(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & basic_cloud_ptr)
