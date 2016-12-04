@@ -122,7 +122,7 @@ void RtToWorldT(const Mat &Rt, Mat &t_res)
     Mat R,t;
     Rt(Range(0,3),Range(0,3)).copyTo(R);
     Rt(Range(0,3),Range(3,4)).copyTo(t);
-    Mat t_new = R.inv()*t;
+    Mat t_new = -R.inv()*t;
     t_new.copyTo(t_res);
     //printMatrix(R, "R");
     //printMatrix(t, "t");
