@@ -9,16 +9,53 @@
 //
 // @Yu
 
-// #define DEBUG_CameraPoseEstimator_VisualizeGoodFeatures
+   #define DEBUG_CameraPoseEstimator_VisualizeGoodFeatures
    #define DEBUG_CameraPoseEstimator_SanityCheck
 // #define DEBUG_CameraPoseEstimator_VisualizeMatching
 // #define DEBUG_CameraPoseEstimator_VisualizeEpipolarline
+
+#define DEBUG_CameraPoseEstimator_ReportReprojectionError
 
 #include "CameraPoseEstimator.h"
 #include "CommonMath.h"
 #include "ParamConfig.h"
 #include "SFMDebugging.h"
 #include "Util.h"
+
+
+static double computeReprojectionError(const Point3d& pts, 
+									   const Point2d& pts1, const Point2d& pts2,  
+									   const Mat& Rt1, const Mat& Rt2, const Mat& K1, const Mat& K2)
+{
+	// compute camera matrix
+	Mat P1 = K1 * Rt1; Mat P2 = K2 * Rt2;
+
+	Mat ptsh = Mat::zeros(4,1,CV_64F);
+	ptsh.at<double>(0) = pts.x;
+	ptsh.at<double>(1) = pts.y;
+	ptsh.at<double>(2) = pts.z;
+	ptsh.at<double>(2) = 1.;
+	Mat pts1_rep = P1 * ptsh; pts1_rep /= pts1_rep.at<double>(2);
+	Mat pts2_rep = P2 * ptsh; pts2_rep /= pts2_rep.at<double>(2);
+
+	double reprojErr = 0;
+	reprojErr += pow(pts1_rep.at<double>(0) - pts1.x,2) + pow(pts1_rep.at<double>(1) - pts1.y,2);
+	reprojErr += pow(pts2_rep.at<double>(0) - pts2.x,2) + pow(pts2_rep.at<double>(1) - pts2.y,2);
+	reprojErr /= 2.;
+
+	return reprojErr;
+}
+
+static double computeReprojectionErrorAvg(const vector<Point2d>& pts1, const vector<Point2d>& pts2, 
+					  					  const Mat& Rt1, const Mat& Rt2, const Mat& K1, const Mat& K2,
+										  const vector<Point3d>& pts3d)
+{
+	double totalReprojErr = 0;
+	for (int i=0; i<pts3d.size(); i++) {
+		totalReprojErr += computeReprojectionError(pts3d[i], pts1[i], pts2[i], Rt1, Rt2, K1, K2);
+	}
+	return totalReprojErr/pts3d.size();
+}
 
 /**
  * triangulate a single point from two view
@@ -332,6 +369,11 @@ void CameraPoseEstimator::initialPoseEstimation(DataManager& data, int frameIdx)
 	}
 	curFrame.Rt = Rts[bestRtIndex];
 	curFrame.Rt = concatenateRts(preFrame.Rt, curFrame.Rt);
+
+#ifdef DEBUG_CameraPoseEstimator_ReportReprojectionError
+	double reprojErr = computeReprojectionErrorAvg(goodPositions1, goodPositions2, I, curFrame.Rt, preK, curK, result);
+	cout << "reprojection err: " << reprojErr << endl;
+#endif
 
 	// associate each feature points with triangulated points
 	int count = 0;
