@@ -9,9 +9,9 @@
 //
 // @Yu
 
-   #define DEBUG_CameraPoseEstimator_VisualizeGoodFeatures
+//  #define DEBUG_CameraPoseEstimator_VisualizeGoodFeatures
    #define DEBUG_CameraPoseEstimator_SanityCheck
-// #define DEBUG_CameraPoseEstimator_VisualizeMatching
+   #define DEBUG_CameraPoseEstimator_VisualizeMatching
 // #define DEBUG_CameraPoseEstimator_VisualizeEpipolarline
 
 #define DEBUG_CameraPoseEstimator_ReportReprojectionError
