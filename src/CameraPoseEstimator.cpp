@@ -11,7 +11,7 @@
 
 //  #define DEBUG_CameraPoseEstimator_VisualizeGoodFeatures
    #define DEBUG_CameraPoseEstimator_SanityCheck
-// #define DEBUG_CameraPoseEstimator_VisualizeMatching
+   #define DEBUG_CameraPoseEstimator_VisualizeMatching
 // #define DEBUG_CameraPoseEstimator_VisualizeEpipolarline
 
 #define DEBUG_CameraPoseEstimator_ReportReprojectionError
@@ -23,38 +23,28 @@
 #include "Util.h"
 
 
-static double computeReprojectionError(const Point3d& pts, 
-									   const Point2d& pts1, const Point2d& pts2,  
-									   const Mat& Rt1, const Mat& Rt2, const Mat& K1, const Mat& K2)
+static double computeReprojectionError(const Point3d& pts3d, const Point2d& pts2d,
+									   const Mat& Rt, const Mat& K)
 {
-	// compute camera matrix
-	Mat P1 = K1 * Rt1; Mat P2 = K2 * Rt2;
-
+	Mat P = K * Rt;
 	Mat ptsh = Mat::zeros(4,1,CV_64F);
-	ptsh.at<double>(0) = pts.x;
-	ptsh.at<double>(1) = pts.y;
-	ptsh.at<double>(2) = pts.z;
+	ptsh.at<double>(0) = pts3d.x; 
+	ptsh.at<double>(1) = pts3d.y;
+	ptsh.at<double>(2) = pts3d.z; 
 	ptsh.at<double>(3) = 1.;
-	Mat pts1_rep = P1 * ptsh; pts1_rep /= pts1_rep.at<double>(2);
-	Mat pts2_rep = P2 * ptsh; pts2_rep /= pts2_rep.at<double>(2);
-
-	double reprojErr = 0;
-	reprojErr += pow(pts1_rep.at<double>(0) - pts1.x,2) + pow(pts1_rep.at<double>(1) - pts1.y,2);
-	reprojErr += pow(pts2_rep.at<double>(0) - pts2.x,2) + pow(pts2_rep.at<double>(1) - pts2.y,2);
-	reprojErr /= 2.;
-
+	Mat pts_rep = P * ptsh;
+	pts_rep /= pts_rep.at<double>(2);
+	double reprojErr = pow(pts_rep.at<double>(0) - pts2d.x,2) + pow(pts_rep.at<double>(1) - pts2d.y,2);
 	return reprojErr;
 }
 
-static double computeReprojectionErrorAvg(const vector<Point2d>& pts1, const vector<Point2d>& pts2, 
-					  					  const Mat& Rt1, const Mat& Rt2, const Mat& K1, const Mat& K2,
-										  const vector<Point3d>& pts3d)
+static double computeReprojectionErrorAvg(const vector<Point2d>& pts1, const Mat& Rt1, const Mat& K1, const vector<Point3d>& pts3d)
 {
 	double totalReprojErr = 0;
 	for (int i=0; i<pts3d.size(); i++) {
-		totalReprojErr += computeReprojectionError(pts3d[i], pts1[i], pts2[i], Rt1, Rt2, K1, K2);
+		totalReprojErr += computeReprojectionError(pts3d[i], pts1[i], Rt1, K1);
 	}
-	return totalReprojErr/pts3d.size();
+	return totalReprojErr/(pts3d.size());
 }
 
 /**
@@ -180,7 +170,7 @@ static void computeFundamentalMatrix(const vector<Point2d>& positions1,
 	}
 
 	// fundamental matrix estimation using eight point algorithm with RANSAC
-	F = findFundamentalMat(inputs1, inputs2, CV_FM_LMEDS, MAX_DISTANCE, CONFIDENCE, status);
+	F = findFundamentalMat(inputs1, inputs2, CV_FM_RANSAC, MAX_DISTANCE, CONFIDENCE, status);
 
 	// construct aligned inlier position arrays
 	inlierPositions1.clear();
@@ -191,6 +181,18 @@ static void computeFundamentalMatrix(const vector<Point2d>& positions1,
 			inlierPositions2.push_back(inputs2[i]);
 		}
 	}
+
+	// use the inliers and compute F again
+	vector<Point2d> newInputs1;
+	vector<Point2d> newInputs2;
+	vector<DMatch> selectedMatches;
+	for (int i=0; i<status.size(); i++) {
+		if (status[i]) {
+			newInputs1.push_back(inputs1[i]);
+			newInputs2.push_back(inputs2[i]);
+		}
+	}
+	F = findFundamentalMat(newInputs1, newInputs2, CV_FM_8POINT);
 }
 
 /**
@@ -371,7 +373,10 @@ void CameraPoseEstimator::initialPoseEstimation(DataManager& data, int frameIdx)
 	curFrame.Rt = concatenateRts(preFrame.Rt, curFrame.Rt);
 
 #ifdef DEBUG_CameraPoseEstimator_ReportReprojectionError
-	double reprojErr = computeReprojectionErrorAvg(goodPositions1, goodPositions2, I, curFrame.Rt, preK, curK, result);
+	double reprojErr = 0;
+	reprojErr += computeReprojectionErrorAvg(goodPositions1, I, preK, result);
+	reprojErr += computeReprojectionErrorAvg(goodPositions2, curFrame.Rt, curK, result);
+	reprojErr /= 2; 
 	cout << "reprojection err: " << reprojErr << endl;
 #endif
 
@@ -398,7 +403,7 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 {
 	// the number of frames to traverse back to find 3d-2d correspondences and 
 	// to triangulate new map points.
-	static const int numBackTraverse = 3; 
+	static const int numBackTraverse = 1; 
 	
 	// traverse in a reverse manner the previous frames
 	// and find matched feature points in the previous
@@ -411,7 +416,7 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 
 	vector<bool> matched(numCurFeatures); // record features in the current frame already getting matched to avoid duplicated match.
 	vector<Point3d> mapPoints;			  // record 3d point position ...
-	vector<Point2f> imagePoints;		  // and corresponding image coordinates.
+	vector<Point2d> imagePoints;		  // and corresponding image coordinates.
  
 	vector<vector<DMatch> > cachedMatches; // cached the match pairs for triangulation later.
 	int count = 0;
@@ -423,6 +428,7 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 
 		// use epipolar constraint to filter out good matches
 #ifdef FILTERING_WITH_F
+		cout << rawMatches.size() << endl;
 		vector<Point2d> tmp0, tmp1; Mat tmp2;
 		vector<unsigned char> status;
 		computeFundamentalMatrix(curFeatures.positions, preFeatures.positions, 
@@ -461,7 +467,7 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 		}
 
 #ifdef DEBUG_CameraPoseEstimator_VisualizeMatching
-		visualizeFeatureMatching(curFrame.frameBuffer, data.frames[i].frameBuffer, curFeatures.positions, preFeatures.positions, selectedMatches);
+		visualizeFeatureMatching(curFrame.frameBuffer, data.frames[i].frameBuffer, curFeatures.positions, preFeatures.positions, rawMatches);
 #endif
 		if (count == numCurFeatures) break;
 	}
@@ -481,6 +487,12 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 	solvePnPRansac(mapPoints, imagePoints, curK, distCoeff, rvec, tvec);
 	Rodrigues(rvec, R); constructRt(R, tvec, Rt);
 	curFrame.Rt = Rt;
+
+#ifdef DEBUG_CameraPoseEstimator_ReportReprojectionError
+	double reprojErr = 0;
+	reprojErr += computeReprojectionErrorAvg(imagePoints, curFrame.Rt, curK, mapPoints);
+	cout << "reprojection err: " << reprojErr << endl;
+#endif
 
 	// invoke pose Bundle Adjustment here
 	// Util::PoseBundleAdjustment(curFrame, data);
