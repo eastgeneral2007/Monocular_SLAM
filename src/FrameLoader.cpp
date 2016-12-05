@@ -250,13 +250,13 @@ void loadCameraIntrinsicsAndGTRT_middleBury(DataManager& data, const string& fil
 void FrameLoader::load(DataManager& data) {
     if (directory.find("rgbd_dataset_freiburg1_desk2_secret")!=string::npos)
     {
-        loadCameraIntrinsics_TUM1(data);
         loadImgFileList(directory, begin_frame, end_frame, data, step);
+        loadCameraIntrinsics_TUM1(data);
     }else if (directory.find("f1")!=string::npos || directory.find("f3")!=string::npos) {
-        loadCameraIntrinsics_kinect(data);
         loadImgFileList(directory+"/rgb/", begin_frame, end_frame, data, step);
         loadGroundTruth(directory+"/groundtruth.txt/", begin_frame, end_frame, data);
         loadDepthFileList(directory+"/depth/", begin_frame, end_frame, data, step);
+        loadCameraIntrinsics_kinect(data);
     }
     else if (directory.find("temple")!=string::npos) {
         loadImgFileList(directory+"/", begin_frame, end_frame, data, step);
