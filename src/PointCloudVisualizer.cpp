@@ -20,11 +20,18 @@ typedef pcl::PointCloud<pcl::PointXYZ>::Ptr    CloudPtr;
 typedef pcl::PointCloud<pcl::PointXYZRGB>::Ptr CloudRGB;
 typedef boost::shared_ptr<pcl::visualization::PCLVisualizer> VisPtr;
 
-//#define ShowOrbSlam
-#define ShowGroundTruth
-#define ShowMeshReconstruction
-//#define PlotAllFrames
-double depth_density_ratio = 0.1;
+
+///////////////////////////////////////////// Visualization Options /////////////////////////////////////////////
+//#define ShowOrbSlam               // Show ORB SLAM point cloud & trajectory & cameras
+#define ShowGroundTruth             // Show ground truth point cloud & trajectory & cameras
+
+double depth_density_ratio = 0.2;   // depth map downsampling ratio [0, 1]:   0 no points,  1 original
+
+#define ShowMeshReconstruction      // To perform mesh reconstruction
+int displayForm = 2;             // Mesh representation: 0 for Wireframe(standard),  1 for surface, 2 for Points
+
+//#define PlotAllFrames             // To accumulate or show single frame
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 const static char* TITLE_NAME = "3D Visualizer";
 const static char* CLOUD_NAME = "map points";
@@ -64,6 +71,7 @@ void PointCloudVisualizer::init()
 
 void PointCloudVisualizer::process(DataManager& data, int frameIdx)
 {
+    cout << endl<<frameIdx-1 <<endl;
     CloudRGB cloudMapPoints(new pcl::PointCloud<pcl::PointXYZRGB>);
     
     #ifdef ShowOrbSlam
@@ -82,8 +90,6 @@ void PointCloudVisualizer::process(DataManager& data, int frameIdx)
 
     #ifdef ShowMeshReconstruction
     // TODO:: Mesh reconstruction from point clouds
-    cout <<"Depth cloud : # of pts: "<<cloudMapPoints->points.size()<<endl;
-
     if (cloudMapPoints->points.size()>20)
     {
         //pcl::PolygonMesh triangles = PossionReconstruction(cloud);
@@ -96,8 +102,6 @@ void PointCloudVisualizer::process(DataManager& data, int frameIdx)
     CloudRGB cloudCamTrajectory(new pcl::PointCloud<pcl::PointXYZRGB>);
     // CamPosToCloudRGB(viewer, data, frameIdx, cloudCamTrajectory);        // without ground truth R|t
     CamPosToCloudRGBWithGT(viewer, data, frameIdx, cloudCamTrajectory);     // with ground truth R|t
-    viewer->spinOnce (100); boost::this_thread::sleep
-            (boost::posix_time::microseconds (1000));
 }
 
 bool PointCloudVisualizer::validationCheck(DataManager& data, int frameIdx)
@@ -257,7 +261,7 @@ static void CamPosToCloudRGB(VisPtr viewer, DataManager& data, int frameIdx, Clo
         basic_point.b = 30;
         basic_cloud_ptr->points.push_back(basic_point);
     }
-    cout<<"Camera pos: "<<basic_point.x<<","<<basic_point.y<<","<<basic_point.z<<endl;
+    // cout<<"Camera pos: "<<basic_point.x<<","<<basic_point.y<<","<<basic_point.z<<endl;
     if (frameIdx > 0)
     {
         viewer->addLine(pre_point, basic_point, 80, 20, 20, to_string(frameIdx), 0);
@@ -320,7 +324,9 @@ static void CamPosToCloudRGBWithGT(VisPtr viewer, DataManager& data, int frameId
  
     basic_cloud_ptr->width = (int) basic_cloud_ptr->points.size ();
     basic_cloud_ptr->height = 1;
-    renderPointCloud(viewer, basic_cloud_ptr);
+    // renderPointCloud(viewer, basic_cloud_ptr);
+    //viewer->spinOnce (100); boost::this_thread::sleep
+    //        (boost::posix_time::microseconds (1000));
 }
 
 static CloudPtr MapPointsToCloudPtr(const vector<MapPoint>& points)
@@ -559,41 +565,8 @@ static PolygonMesh PossionReconstruction(CloudPtr& cloud)
     // Finish
 }
 
-
-static void removeOutliers(CloudRGB & cloud, CloudRGB & cloud_filtered)
-{
-    //cout << "Begin passthrough filter" << endl;
-    // Create the filtering object
-    pcl::StatisticalOutlierRemoval<pcl::PointXYZRGB> sor;
-    sor.setInputCloud (cloud);
-
-    // Set number of neighbors to analyze
-    sor.setMeanK (50);
-    sor.setStddevMulThresh (1.0);
-    //sor.setNegative (true);  // to get outliers only
-    sor.filter (*cloud_filtered);
-    cout << "Filtered by StatisticalOutlierRemoval!   "  << "Num of pts: " << cloud_filtered->width << endl;
-}
-
-static void downSample(CloudRGB & cloud, CloudRGB & cloud_filtered)
-{
-    //cout << "Begin downsampling" << endl;
-    //pcl::PCLPointCloud2::Ptr cloud_2 (new pcl::PCLPointCloud2 ());
-    //pcl_conversions::toPCL(cloud, cloud_2);
-
-    //pcl::PCLPointCloud2::Ptr cloud_filtered_2 (new pcl::PCLPointCloud2 ());
-    pcl::VoxelGrid<pcl::PointXYZRGB> sor;
-    sor.setInputCloud(cloud);
-    sor.setLeafSize(0.01f, 0.01f, 0.01f);          // created with a leaf size of 1cm
-    sor.filter(*cloud_filtered);
-    //sor.filter (*cloud_filtered_2);
-    //pcl::fromPCLPointCloud2(cloud_filtered_2, cloud_filtered);
-    cout << "Downsampled by VoxelGrid! "  << "Num of pts: " << cloud_filtered->width << endl;
-}
-
 static void filterPointCloud(CloudRGB & cloud, CloudRGB & cloud_filtered)
 {
-    //cout << "Begin passthrough filter" << endl;
     pcl::PassThrough<PointXYZRGB> filter;
     filter.setInputCloud(cloud);
     filter.setFilterFieldName ("x");
@@ -603,15 +576,37 @@ static void filterPointCloud(CloudRGB & cloud, CloudRGB & cloud_filtered)
     filter.setFilterFieldName ("z");
     filter.setFilterLimits (-4000, 4000);
     filter.filter(*cloud_filtered);
-    cout << "Filtered by PassThrough!  "  << "Num of pts: " << cloud_filtered->width << endl;
+    cout << "[ "<<cloud_filtered->width << " points ] after PassThrough filter.  "  << endl;
+}
+
+static void downSample(CloudRGB & cloud, CloudRGB & cloud_filtered)
+{
+    pcl::VoxelGrid<pcl::PointXYZRGB> sor;
+    sor.setInputCloud(cloud);
+    //sor.setLeafSize(0.01f, 0.01f, 0.01f);          // created with a leaf size of 1cm
+    sor.setLeafSize(0.01f, 0.01f, 0.01f); 
+    sor.filter(*cloud_filtered);
+    cout << "[ " << cloud_filtered->width << " points ] after downsampling by VoxelGrid. " <<endl;
+}
+
+static void removeOutliers(CloudRGB & cloud, CloudRGB & cloud_filtered)
+{
+    pcl::StatisticalOutlierRemoval<pcl::PointXYZRGB> sor;
+    sor.setInputCloud (cloud);
+    // Set number of neighbors to analyze
+    sor.setMeanK (50);
+    sor.setStddevMulThresh (1.0);
+    //sor.setNegative (true);  // to get outliers only
+    sor.filter (*cloud_filtered);
+    cout  << "[ " << cloud_filtered->width << " points ] after StatisticalOutlierRemoval.  " << endl;
 }
 
 // Mesh possion reconstruction for CloudRGB
 static void meshReconstruction(VisPtr viewer2, CloudRGB &cloud_ori)
 {
-    cout << "Started Poisson mesh reconstruction" << endl;
     int pts_num = cloud_ori->points.size();
-    
+    cout << "Started Poisson mesh reconstruction [ "<<pts_num <<" points ] " <<endl;
+
     // Filtered by PassThrough
     CloudRGB filtered(new pcl::PointCloud<PointXYZRGB>());
     filterPointCloud(cloud_ori,filtered);
@@ -639,7 +634,7 @@ static void meshReconstruction(VisPtr viewer2, CloudRGB &cloud_ori)
     normEst.setInputCloud (cloud);
     normEst.setSearchMethod (tree);
 
-    // Use 20 neighbor points for estimating normal
+    // Use neighbor points for estimating normal
     normEst.setKSearch (MIN(pts_num, 20));
     normEst.compute (*normals);
     // normals should not contain the point normals + surface
@@ -676,7 +671,7 @@ static void meshReconstruction(VisPtr viewer2, CloudRGB &cloud_ori)
     //pcl::io::saveVTKFile (str, triangles);
     
     // Create viewer object and show mesh
-    string meshname = "sample mesh";
+    string meshname = "3D mesh";
     if (viewer2->contains(meshname)) {
         viewer2->updatePolygonMesh(triangles, meshname);
     }
@@ -684,16 +679,21 @@ static void meshReconstruction(VisPtr viewer2, CloudRGB &cloud_ori)
         viewer2->addPolygonMesh(triangles, meshname);
     }
     
-    // viewer2->initCameraParameters ();
-
     // Setting type of mesh representation
     // Wireframe = standard "mesh" representation
-    viewer2->setRepresentationToWireframeForAllActors ();
-    // viewer->setRepresentationToSurfaceForAllActors ();
-    // viewer->setRepresentationToPointsForAllActors ();
+    switch(displayForm){
+        case 0: 
+            viewer2->setRepresentationToWireframeForAllActors ();
+            break;
+        case 1:
+            viewer2->setRepresentationToSurfaceForAllActors ();
+            break;
+        default:
+            viewer2->setRepresentationToPointsForAllActors ();
+            break;
+    }
 
-    viewer2->spinOnce (100); boost::this_thread::sleep
-            (boost::posix_time::microseconds (1000));
-    cout << "Finished mesh reconstruction" <<endl;
+    viewer2->spinOnce (1000); boost::this_thread::sleep
+            (boost::posix_time::microseconds (10000));
 
 }

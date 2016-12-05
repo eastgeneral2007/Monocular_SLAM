@@ -40,10 +40,9 @@ int main(int argc, char **argv) {
 	ProcessingPipeline ORBSlam;
 	ORBSlam.addStage(new ORBFeatureExtractor());
 	ORBSlam.addStage(new CameraPoseEstimator());
-	// ORBSlam.addStage(new Optimiser());
 	// ORBSlam.addStage(new Optimiser()); // this is for full BA, to turn on pose BA, uncomment off invokation in pnpPoseEstimation()
-	ORBSlam.addStage(new TrajectoryVisualizer());
-	ORBSlam.addStage(new PointCloudVisualizer());
+	// ORBSlam.addStage(new TrajectoryVisualizer());
+	// ORBSlam.addStage(new PointCloudVisualizer());
 	
 	// launch ORB-slam
 	vector<Frame>& frames = dm.frames;
