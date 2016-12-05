@@ -25,12 +25,12 @@ typedef boost::shared_ptr<pcl::visualization::PCLVisualizer> VisPtr;
 #define ShowOrbSlam               // Show ORB SLAM point cloud 
 // #define ShowGroundTruth             // Show ground truth point cloud 
 #define ShowCameraTrajectory        // When visualizing point cloud, show trajectory & cameras
-#define OnlyTrajectory                // don't show point cloud
+//#define OnlyTrajectory                // don't show point cloud
 
 #define drawCameraPyramid
 //#define PlotAllFrames             // To accumulate or show single frame
 
-double depth_density_ratio = 0.2;   // depth map downsampling ratio [0, 1]:   0 no points,  1 original
+double depth_density_ratio = 0.05;   // depth map downsampling ratio [0, 1]:   0 no points,  1 original
 
 // #define ShowMeshReconstruction      // To perform mesh reconstruction
 int displayForm = 0;             // Mesh representation: 0 for Wireframe(standard),  1 for surface, 2 for Points

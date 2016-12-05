@@ -10,11 +10,11 @@
 // @Yu
 
 //  #define DEBUG_CameraPoseEstimator_VisualizeGoodFeatures
-   #define DEBUG_CameraPoseEstimator_SanityCheck
-   #define DEBUG_CameraPoseEstimator_VisualizeMatching
+//    #define DEBUG_CameraPoseEstimator_SanityCheck
+//    #define DEBUG_CameraPoseEstimator_VisualizeMatching
 // #define DEBUG_CameraPoseEstimator_VisualizeEpipolarline
 
-#define DEBUG_CameraPoseEstimator_ReportReprojectionError
+// #define DEBUG_CameraPoseEstimator_ReportReprojectionError
 
 #include "CameraPoseEstimator.h"
 #include "CommonMath.h"
@@ -162,12 +162,26 @@ static void computeFundamentalMatrix(const vector<Point2d>& positions1,
 	static const double CONFIDENCE = 0.99;
 
 	// construct aligned position arrays
-	vector<Point2d> inputs1;
-	vector<Point2d> inputs2;
+	vector<Point2f> inputs1;
+	vector<Point2f> inputs2;
+	Point2f max_i(0.0f, 0.0f);
 	for (int i=0; i<matches.size(); i++) {
-		inputs1.push_back(positions1[matches[i].queryIdx]);
-		inputs2.push_back(positions2[matches[i].trainIdx]);
+		Point2f input1 = positions1[matches[i].queryIdx];
+		Point2f input2 = positions1[matches[i].trainIdx];
+		if (input1.x > max_i.x)
+			max_i.x = input1.x;
+		if (input1.y > max_i.y)
+			max_i.y = input1.y;
 	}
+
+	float ratio = MAX(max_i.x, max_i.y);
+	for (int i=0; i<matches.size(); i++) {
+		Point2f input1 = positions1[matches[i].queryIdx / ratio];
+		Point2f input2 = positions1[matches[i].trainIdx / ratio];
+		inputs1.push_back(input1);
+		inputs2.push_back(input2);
+	}
+
 
 	// fundamental matrix estimation using eight point algorithm with RANSAC
 	F = findFundamentalMat(inputs1, inputs2, CV_FM_RANSAC, MAX_DISTANCE, CONFIDENCE, status);
@@ -177,14 +191,14 @@ static void computeFundamentalMatrix(const vector<Point2d>& positions1,
 	inlierPositions2.clear();
 	for(int i = 0; i < status.size(); i++) {
 		if (status[i]) {
-			inlierPositions1.push_back(inputs1[i]);
-			inlierPositions2.push_back(inputs2[i]);
+			inlierPositions1.push_back(inputs1[i]*ratio);
+			inlierPositions2.push_back(inputs2[i]*ratio);
 		}
 	}
 
 	// use the inliers and compute F again
-	vector<Point2d> newInputs1;
-	vector<Point2d> newInputs2;
+	vector<Point2f> newInputs1;
+	vector<Point2f> newInputs2;
 	vector<DMatch> selectedMatches;
 	for (int i=0; i<status.size(); i++) {
 		if (status[i]) {
@@ -193,6 +207,10 @@ static void computeFundamentalMatrix(const vector<Point2d>& positions1,
 		}
 	}
 	F = findFundamentalMat(newInputs1, newInputs2, CV_FM_8POINT);
+	cout << F <<endl;
+	double T[3][3]={{1.0/ratio,0,0}, {0, 1.0/ratio,0}, {0,0,1.0}};
+	Mat T_ratio=Mat(3,3,CV_64F, T);
+	F = T_ratio.t() * F * T_ratio;
 }
 
 /**
@@ -403,7 +421,7 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 {
 	// the number of frames to traverse back to find 3d-2d correspondences and 
 	// to triangulate new map points.
-	static const int numBackTraverse = 1; 
+	static const int numBackTraverse = 5; 
 	
 	// traverse in a reverse manner the previous frames
 	// and find matched feature points in the previous
