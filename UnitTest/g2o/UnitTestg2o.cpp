@@ -33,8 +33,11 @@ void UnitTestg2o::unitTestFullBA() {
     cv::Mat intrinsics_tum1 = (Mat_<double>(3,3) << 517.306408,  0,   318.643040,
     0,   516.469215,   255.313989,
     0,   0,    1);
-    dm.camera_intrinsics = intrinsics_tum1;
     vector<Frame> frames_before_full_BA = Util::loadFrames("data/UnitTest/Frames.csv");
+    // assign intrinsics to each frame
+    for (int i =0;i<frames_before_full_BA.size();i++) {
+        frames_before_full_BA[i].K = intrinsics_tum1;
+    }
     vector<MapPoint> map_points_before_full_BA = Util::loadMapPoints("data/UnitTest/MapPoints.csv");
     cout << "finished loading before frames, # read in:" << frames_before_full_BA.size() << endl;
     cout << "finished loading before map points, # read in:" << map_points_before_full_BA.size() << endl;
