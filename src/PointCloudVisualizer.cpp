@@ -18,8 +18,9 @@ typedef pcl::PointCloud<pcl::PointXYZ>::Ptr    CloudPtr;
 typedef pcl::PointCloud<pcl::PointXYZRGB>::Ptr CloudRGB;
 typedef boost::shared_ptr<pcl::visualization::PCLVisualizer> VisPtr;
 
-#define ShowOrbSlam
+// #define ShowOrbSlam
 // #define ShowGroundTruth
+// #define OnlyCamera
 
 const static char* TITLE_NAME = "3D Visualizer";
 const static char* CLOUD_NAME = "map points";
@@ -294,6 +295,10 @@ static void CamPosToCloudRGBWithGT(VisPtr viewer, DataManager& data, int frameId
         viewer->addLine(pre_point_gt, basic_point_gt, 20, 250, 20, "gt"+to_string(frameIdx), 0);
         DrawCamera(viewer, data.frames[frameIdx].RtGt, frameIdx, "2");
         #endif
+
+#ifdef OnlyCamera
+        DrawCamera(viewer, data.frames[frameIdx].Rt, frameIdx, "1");
+#endif
     }
  
     basic_cloud_ptr->width = (int) basic_cloud_ptr->points.size ();
