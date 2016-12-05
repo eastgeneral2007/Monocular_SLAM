@@ -11,7 +11,7 @@
 
 //  #define DEBUG_CameraPoseEstimator_VisualizeGoodFeatures
    #define DEBUG_CameraPoseEstimator_SanityCheck
-   #define DEBUG_CameraPoseEstimator_VisualizeMatching
+// #define DEBUG_CameraPoseEstimator_VisualizeMatching
 // #define DEBUG_CameraPoseEstimator_VisualizeEpipolarline
 
 #define DEBUG_CameraPoseEstimator_ReportReprojectionError
@@ -34,7 +34,7 @@ static double computeReprojectionError(const Point3d& pts,
 	ptsh.at<double>(0) = pts.x;
 	ptsh.at<double>(1) = pts.y;
 	ptsh.at<double>(2) = pts.z;
-	ptsh.at<double>(2) = 1.;
+	ptsh.at<double>(3) = 1.;
 	Mat pts1_rep = P1 * ptsh; pts1_rep /= pts1_rep.at<double>(2);
 	Mat pts2_rep = P2 * ptsh; pts2_rep /= pts2_rep.at<double>(2);
 
