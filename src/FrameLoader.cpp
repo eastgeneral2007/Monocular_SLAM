@@ -13,6 +13,10 @@
 #include <iostream>
 using namespace std;
 
+extern void printMatrix(const Mat& M, std::string matrix);
+extern void RtToWorldRT(const Mat& Rt, Mat &Rt_res);
+extern void WorldRtToRT(const Mat& Rt, Mat &Rt_res);
+
 bool has_suffix(const string& s, const string& suffix)
 {
     return (s.size() >= suffix.size()) && equal(suffix.rbegin(), suffix.rend(), s.rbegin());
@@ -90,9 +94,9 @@ void loadDepthFileList(string directory, int begin_frame, int end_frame, DataMan
     }
 }
 
-Mat loadRT(double tx, double ty, double tz, double qx, double qy, double qz, double qw)
+void loadRT(Mat & Rt, double tx, double ty, double tz, double qx, double qy, double qz, double qw)
 {
-    Mat Rt = Mat::zeros(3,4,CV_64F);
+    Rt = Mat::zeros(3,4, CV_64F);
     // q->R
     Rt.at<double>(0,0) = 1 - 2*qy*qy - 2*qz*qz;
     Rt.at<double>(0,1) = 2*qx*qy - 2*qz*qw;
@@ -107,7 +111,6 @@ Mat loadRT(double tx, double ty, double tz, double qx, double qy, double qz, dou
     Rt.at<double>(0,3) = tx;
     Rt.at<double>(1,3) = ty;
     Rt.at<double>(2,3) = tz;
-    return Rt.clone();
 }
 
 void loadGroundTruth(string filename, int begin_frame, int end_frame, DataManager& data) {
@@ -141,13 +144,17 @@ void loadGroundTruth(string filename, int begin_frame, int end_frame, DataManage
                 fin.getline(str, 256);
                 sscanf(str, "%lf %lf %lf %lf %lf %lf %lf %lf", &time_stamp_gt, &tx, &ty, &tz, &qx, &qy, &qz, &qw);
             }
-            //data.frames[frameIdx].RtGt = loadRT(pre_tx, pre_ty, pre_tz, qx, qy, qz, qw);
-            data.frames[frameIdx].RtGt = loadRT(tx, ty, tz, qx, qy, qz, qw);
-            //printf("(%d) %lf VS %lf :  ", frameIdx, time_stamp, time_stamp_gt);
-            //cout << data.frames[frameIdx].RtGt.agit t<double>(0,3) <<", "<<
-            //        data.frames[frameIdx].RtGt.at<double>(1,3) <<", "<<
-            //        data.frames[frameIdx].RtGt.at<double>(2,3) <<"    VS"  <<
-            //        tx << ", "<<ty <<", " <<tz << endl;
+            Mat Rt = Mat::zeros(3,4,CV_64F);
+            Mat Rt_res = Mat::zeros(3,4,CV_64F);
+            loadRT(Rt, tx, ty, tz, qx, qy, qz, qw);
+            WorldRtToRT(Rt, Rt_res);
+            data.frames[frameIdx].RtGt = Mat::zeros(3,4,CV_64F);
+            Rt_res.copyTo(data.frames[frameIdx].RtGt);
+            // printf("\n(%d) %lf VS %lf :  \n", frameIdx, time_stamp, time_stamp_gt);
+            // cout << "input line: " << str << endl;
+            // printMatrix(Rt, "Rt");
+            // printMatrix(Rt_res, "Rt_new");
+            // waitKey(0);
             if (frameIdx < data.frames.size()-1)
                 time_stamp = data.frames[++frameIdx].meta.timestamp;
             else
@@ -155,7 +162,7 @@ void loadGroundTruth(string filename, int begin_frame, int end_frame, DataManage
         }
         fin.close();
     }else{
-        cout << "Can't find ground truth file "+filename << endl;
+        cout << "Can't find ground truth file " + filename << endl;
         return;
     }    
 }
@@ -239,7 +246,9 @@ void loadCameraIntrinsicsAndGTRT_middleBury(DataManager& data, const string& fil
         file >> frame.RtGt.at<double>(1,0);     file >> frame.RtGt.at<double>(1,1);     file >> frame.RtGt.at<double>(1,2);
         file >> frame.RtGt.at<double>(2,0);     file >> frame.RtGt.at<double>(2,1);     file >> frame.RtGt.at<double>(2,2);
         file >> frame.RtGt.at<double>(0,3);     file >> frame.RtGt.at<double>(1,3);     file >> frame.RtGt.at<double>(2,3);
-
+        Mat RtGt_new = Mat::zeros(3,4,CV_64F);
+        WorldRtToRT(frame.RtGt, RtGt_new);
+        RtGt_new.copyTo(frame.RtGt);
         for (int i=0; i<(step-1); i++) {
             string tmp;
             getline(file,tmp);

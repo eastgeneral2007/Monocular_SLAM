@@ -27,6 +27,7 @@
 
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/console/parse.h>
 //#include <sensor_msgs/PointCloud2.h>
 //#include <pcl/PCLPointCloud2.h>
 //#include <pcl/conversions.h>
