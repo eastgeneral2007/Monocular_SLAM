@@ -22,18 +22,18 @@ typedef boost::shared_ptr<pcl::visualization::PCLVisualizer> VisPtr;
 
 
 ///////////////////////////////////////////// Visualization Options /////////////////////////////////////////////
-//#define ShowOrbSlam               // Show ORB SLAM point cloud 
-#define ShowGroundTruth             // Show ground truth point cloud 
+#define ShowOrbSlam               // Show ORB SLAM point cloud 
+// #define ShowGroundTruth             // Show ground truth point cloud 
 #define ShowCameraTrajectory        // When visualizing point cloud, show trajectory & cameras
-//#define OnlyTrajectory                // don't show point cloud
+#define OnlyTrajectory                // don't show point cloud
 
 #define drawCameraPyramid
-#define PlotAllFrames             // To accumulate or show single frame
+//#define PlotAllFrames             // To accumulate or show single frame
 
 double depth_density_ratio = 0.2;   // depth map downsampling ratio [0, 1]:   0 no points,  1 original
 
-#define ShowMeshReconstruction      // To perform mesh reconstruction
-int displayForm = 2;             // Mesh representation: 0 for Wireframe(standard),  1 for surface, 2 for Points
+// #define ShowMeshReconstruction      // To perform mesh reconstruction
+int displayForm = 0;             // Mesh representation: 0 for Wireframe(standard),  1 for surface, 2 for Points
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 const static char* TITLE_NAME = "3D Visualizer";
@@ -72,7 +72,7 @@ void PointCloudVisualizer::init()
     cloud = generateTestCloud();
 #endif
     viewer = createVisualizer("3D Visualizer: Point Cloud");
-    viewer ->addCoordinateSystem (1);
+    // viewer ->addCoordinateSystem (1);
 #ifdef ShowMeshReconstruction
     viewer2 = createVisualizer("3D Visualizer: 3D Triangle Mesh");
     viewer2->registerKeyboardCallback (keyboardEventOccurred, (void*)viewer.get ());
@@ -93,7 +93,7 @@ void PointCloudVisualizer::process(DataManager& data, int frameIdx)
     if (data.mapPoints.size()>0)
         MapPointsToCloudRGB(viewer, data, frameIdx, cloudMapPoints);
     if (data.frames[frameIdx].depthBuffer.rows)
-        DepthToCloudRGB_VOPose(viewer, data, frameIdx, cloudDepthPoints);
+        //DepthToCloudRGB_VOPose(viewer, data, frameIdx, cloudDepthPoints);
     #ifdef ShowCameraTrajectory
     CamPosToCloudRGBVO(viewer, data, frameIdx, cloudCamTrajectoryVO);        // without ground truth R|t
     #endif
@@ -104,7 +104,7 @@ void PointCloudVisualizer::process(DataManager& data, int frameIdx)
     #ifndef OnlyTrajectory
     #ifdef ShowGroundTruth
     if (data.frames[frameIdx].depthBuffer.rows)
-        DepthToCloudRGB_GTPose(viewer, data, frameIdx, cloudMapPoints);            // with ground truth depth map
+        //DepthToCloudRGB_GTPose(viewer, data, frameIdx, cloudMapPoints);            // with ground truth depth map
     #ifdef ShowCameraTrajectory
     CamPosToCloudRGBGT(viewer, data, frameIdx, cloudCamTrajectoryGT);     // with ground truth R|t
     #endif
@@ -132,6 +132,9 @@ void PointCloudVisualizer::process(DataManager& data, int frameIdx)
         meshReconstruction(viewer2, cloudMapPoints);
     }
     #endif
+
+    viewer->spinOnce (100); boost::this_thread::sleep
+            (boost::posix_time::microseconds (100));
 }
 
 bool PointCloudVisualizer::validationCheck(DataManager& data, int frameIdx)
@@ -225,13 +228,16 @@ void WorldRtToRT(const Mat& Rt, Mat &Rt_res)
 
 void DrawCamera(VisPtr viewer, const Mat &Rt, int frameIdx, string name)
 {
-    double dist = 0.3;
+    double dist = 1;
     double scale = 0.5;
     Mat x = Mat::zeros(3,1,CV_64F); x.at<double>(0,0) = dist; 
     Mat y = Mat::zeros(3,1,CV_64F); y.at<double>(1,0) = dist; 
     Mat z = Mat::zeros(3,1,CV_64F); z.at<double>(2,0) = dist; 
     Mat R = Mat::eye(3,3,CV_64F);
     Mat t = Mat::zeros(3,1,CV_64F);
+    // printMatrix(Rt, "Rt");
+    // cout << frameIdx << endl;
+    
     Rt(Range(0,3), Range(0,3)).copyTo(R);
     Rt(Range(0,3), Range(3,4)).copyTo(t);
    

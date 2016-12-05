@@ -27,6 +27,7 @@ int main(int argc, char **argv) {
     // assign intrinsics to each frame
     for (int i =0;i<ERL_frames.size();i++) {
         ERL_frames[i].K = intrinsics_f1;
+        cout << "ERL_frames[" << i << "]'s Rt:\n" << ERL_frames[i].Rt << endl; 
     }
 
     dm.frames = ERL_frames;
@@ -41,6 +42,6 @@ int main(int argc, char **argv) {
 	for (int i=0; i<dm.frames.size(); i++) {
 		ERLVisualisation.process(dm, i);
         imshow("for_stop", for_stop);
-        waitKey(0);
+        waitKey(10);
 	}
 }

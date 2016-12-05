@@ -42,17 +42,24 @@ void drawOdometryMap(DataManager& data, int frameIdx, int size_p, double map_ran
     Mat t_pre = Mat::zeros(3,1, CV_64F);
     Mat Rt = Mat::zeros(3,4, CV_64F);
     Mat Rt_pre = Mat::zeros(3,4, CV_64F);
-    (data.frames[frameIdx].Rt).copyTo(Rt);
-    (data.frames[frameIdx-1].Rt).copyTo(Rt_pre);
+    // (data.frames[frameIdx].Rt).copyTo(Rt);
+    // (data.frames[frameIdx-1].Rt).copyTo(Rt_pre);
+    // RtToWorldT(Rt, t);
+    // RtToWorldT(Rt_pre, t_pre);
+    (data.frames[frameIdx].RtGt).copyTo(Rt);
+    (data.frames[frameIdx-1].RtGt).copyTo(Rt_pre);
     RtToWorldT(Rt, t);
     RtToWorldT(Rt_pre, t_pre);
     
     Point3f curr_loc( t.at<double>(0,0), t.at<double>(1,0), t.at<double>(2,0));
     Point3f prev_loc( t_pre.at<double>(0,0), t_pre.at<double>(1,0), t_pre.at<double>(2,0));
 
+    /*
     for (int i = 0; i <= frameIdx; ++i) {
-        double dx = data.frames[i].Rt.at<double>(0,3) - curr_loc.x;
-        double dz = data.frames[i].Rt.at<double>(2,3) - curr_loc.z;
+        // double dx = data.frames[i].Rt.at<double>(0,3) - curr_loc.x;
+        // double dz = data.frames[i].Rt.at<double>(2,3) - curr_loc.z;
+        double dx = data.frames[i].RtGt.at<double>(0,3) - curr_loc.x;
+        double dz = data.frames[i].RtGt.at<double>(1,3) - curr_loc.y;
         if (abs(dx) < map_range/2 && abs(dz) < map_range/2)
         {
             Point center;
@@ -62,19 +69,22 @@ void drawOdometryMap(DataManager& data, int frameIdx, int size_p, double map_ran
             circle( img, center, p_radius, trace_color, -1);
         }
     }
+    */
 
     circle( img, ref_center, p_radius+1, loc_color, -1);
 
-    Mat curr_pose = data.frames[frameIdx].Rt;
+    // Mat curr_pose = data.frames[frameIdx].Rt;
+    Mat curr_pose = data.frames[frameIdx].RtGt;
     Mat forward = Mat::zeros(4,1,curr_pose.type());
     forward.at<double>(2) = map_range/3;
     forward.at<double>(3) = 1;
     Mat r = curr_pose * forward;
 
-    Point3f vec(r.at<double>(2), r.at<double>(1), -r.at<double>(0));
+    // Point3f vec(r.at<double>(2), r.at<double>(1), -r.at<double>(0));
+    Point3f vec(r.at<double>(0), r.at<double>(1), -r.at<double>(2));
     Point target;
     target.x = MAX(MIN(ref_center.x + (vec.x - curr_loc.x)*pixel_per_meter, size_p+base_x),base_x);
-    target.y = MAX(MIN(ref_center.y - (vec.z - curr_loc.z)*pixel_per_meter, size_p+base_y),base_y);
+    target.y = MAX(MIN(ref_center.y + (vec.z - curr_loc.z)*pixel_per_meter, size_p+base_y),base_y);
     line(img, ref_center, target, Scalar(255,0,0),2);
 
     // note of scale in the left_bottom corner
