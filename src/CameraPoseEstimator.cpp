@@ -10,7 +10,7 @@
 // @Yu
 
 // #define DEBUG_CameraPoseEstimator_VisualizeGoodFeatures
-// #define DEBUG_CameraPoseEstimator_SanityCheck
+   #define DEBUG_CameraPoseEstimator_SanityCheck
 // #define DEBUG_CameraPoseEstimator_VisualizeMatching
 // #define DEBUG_CameraPoseEstimator_VisualizeEpipolarline
 
@@ -27,11 +27,11 @@
  * else return false.
  */
 static bool TriangulateSinglePointFromTwoView(const Point2d& pts1, const Point2d& pts2,  
-											  const Mat& Rt1, const Mat& Rt2, const Mat& K,
+											  const Mat& Rt1, const Mat& Rt2, const Mat& K1, const Mat& K2,
 											  Point3d& result, bool countFront = false)
 {
 	// compute camera matrix
-	Mat P1 = K * Rt1; Mat P2 = K * Rt2;
+	Mat P1 = K1 * Rt1; Mat P2 = K2 * Rt2;
 
 	// build the linear system
 	Mat A;
@@ -77,7 +77,7 @@ static bool TriangulateSinglePointFromTwoView(const Point2d& pts1, const Point2d
  * return the number of 3d points in front of the both camera.
  */
 static int TriangulateMultiplePointsFromTwoView(const vector<Point2d>& pts1, const vector<Point2d>& pts2, 
-					  							 const Mat& Rt1, const Mat& Rt2, const Mat& K,
+					  							 const Mat& Rt1, const Mat& Rt2, const Mat& K1, const Mat& K2,
 					  							 vector<Point3d>& result, bool countFront = false)
 {
 	int count = 0;
@@ -85,7 +85,7 @@ static int TriangulateMultiplePointsFromTwoView(const vector<Point2d>& pts1, con
 	for (int i=0; i<pts1.size(); i++)
 	{
 		Point3d point3d;
-		bool front = TriangulateSinglePointFromTwoView(pts1[i], pts2[i], Rt1, Rt2, K, point3d, countFront);
+		bool front = TriangulateSinglePointFromTwoView(pts1[i], pts2[i], Rt1, Rt2, K1, K2, point3d, countFront);
 		if (front) count++;
 		result.push_back(point3d);
 	}
@@ -143,7 +143,7 @@ static void computeFundamentalMatrix(const vector<Point2d>& positions1,
 	}
 
 	// fundamental matrix estimation using eight point algorithm with RANSAC
-	F = findFundamentalMat(inputs1, inputs2, FM_RANSAC, MAX_DISTANCE, CONFIDENCE, status);
+	F = findFundamentalMat(inputs1, inputs2, CV_FM_LMEDS, MAX_DISTANCE, CONFIDENCE, status);
 
 	// construct aligned inlier position arrays
 	inlierPositions1.clear();
@@ -159,8 +159,8 @@ static void computeFundamentalMatrix(const vector<Point2d>& positions1,
 /**
  * compute essential matrix from fundamental matrix given intrinsics K
  */
-static void computeEssentialMatrix(const Mat& F, const Mat& K, Mat& E) {
-	E = K.t() * F * K;
+static void computeEssentialMatrix(const Mat& F, const Mat& K1, const Mat& K2, Mat& E) {
+	E = K2.t() * F * K1;
 }
 
 /**
@@ -225,6 +225,18 @@ static void registerNewMapPoint(DataManager& data, Point3d pos,
 }
 
 /**
+ * concatenate two R|ts
+ */
+static Mat concatenateRts(Mat Rt1, Mat Rt2) {
+	Mat Rt1_4x4 = Mat::zeros(4,4,CV_64F);
+	Rt1.copyTo(Rt1_4x4.rowRange(0,3).colRange(0,4));
+	Mat Rt2_4x4 = Mat::zeros(4,4,CV_64F);
+	Rt2.copyTo(Rt2_4x4.rowRange(0,3).colRange(0,4));
+	Mat result = Rt1_4x4 * Rt2_4x4;
+	return result.rowRange(0,3).colRange(0,4);
+}
+
+/**
  * Pose Estimation based on the classical two view reconstruction algorithm.
  *
  * This routine is used for pose estimation for the first two frame
@@ -236,13 +248,14 @@ void CameraPoseEstimator::initialPoseEstimation(DataManager& data, int frameIdx)
 	// fetch references
 	Frame& curFrame = data.frames[frameIdx];
 	Frame& preFrame = data.frames[frameIdx-1];
+	const Mat& curK = curFrame.K;
+	const Mat& preK = preFrame.K;
 	vector<Point2d>& positions1 = preFrame.features.positions;
 	vector<Point2d>& positions2 = curFrame.features.positions;
 	vector<int>& mapPointsIndices1=  preFrame.features.mapPointsIndices;
 	vector<int>& mapPointsIndices2=  curFrame.features.mapPointsIndices;
 	Mat descriptors1 = preFrame.features.descriptors;
 	Mat descriptors2 = curFrame.features.descriptors;
-	const Mat& K = data.camera_intrinsics;
 
 	// correspondence matching
 	vector<DMatch> matches;
@@ -278,10 +291,10 @@ void CameraPoseEstimator::initialPoseEstimation(DataManager& data, int frameIdx)
 
 	// compute essential matrix
 	Mat E; 
-	computeEssentialMatrix(F, K, E);
+	computeEssentialMatrix(F, preK, curK, E);
 
 #ifdef DEBUG_CameraPoseEstimator_SanityCheck
-	if (!CheckValxidEssential(E)) {
+	if (!CheckValidEssential(E)) {
 		std::cout << "Essential matrix is not valid!" << std::endl;
 	}
 #endif
@@ -309,7 +322,7 @@ void CameraPoseEstimator::initialPoseEstimation(DataManager& data, int frameIdx)
 	for (int i=0; i < 4; i++) {
 		vector<Point3d> tmpResult;
 		Mat Rt = Rts[i];
-		int count = TriangulateMultiplePointsFromTwoView(goodPositions1, goodPositions2, I, Rt, K, tmpResult, true);
+		int count = TriangulateMultiplePointsFromTwoView(goodPositions1, goodPositions2, I, Rt, preK, curK, tmpResult, true);
 		cout << count << " of " << goodPositions1.size() << " 3D points are in front of the camera." << endl;
 		if (maxCount < count) {
 			maxCount = count;
@@ -318,6 +331,7 @@ void CameraPoseEstimator::initialPoseEstimation(DataManager& data, int frameIdx)
 		}
 	}
 	curFrame.Rt = Rts[bestRtIndex];
+	curFrame.Rt = concatenateRts(preFrame.Rt, curFrame.Rt);
 
 	// associate each feature points with triangulated points
 	int count = 0;
@@ -350,6 +364,7 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 	vector<Frame>& frames = data.frames;
 	Frame &curFrame = frames[frameIdx];
 	Features& curFeatures = curFrame.features;
+	const Mat& curK = curFrame.K;
 	int numCurFeatures = curFeatures.positions.size();
 
 	vector<bool> matched(numCurFeatures); // record features in the current frame already getting matched to avoid duplicated match.
@@ -412,8 +427,16 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 	// perform perspective-n-point algorithm to 
 	// estimate the current camera's pose.
 	Mat distCoeff = Mat::zeros(8, 1, CV_64F);
+
+	// for F1
+	distCoeff.at<double>(0) = 0.2624;
+	distCoeff.at<double>(1) = -0.9531;
+	distCoeff.at<double>(2) = -0.0054;
+	distCoeff.at<double>(3) = 0.0026;
+	distCoeff.at<double>(4) = 1.1633;
+
 	Mat rvec, tvec, R, Rt;
-	solvePnPRansac(mapPoints, imagePoints, data.camera_intrinsics, distCoeff, rvec, tvec);
+	solvePnPRansac(mapPoints, imagePoints, curK, distCoeff, rvec, tvec);
 	Rodrigues(rvec, R); constructRt(R, tvec, Rt);
 	curFrame.Rt = Rt;
 
@@ -426,6 +449,7 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 	for (int i= frameIdx - 1; i >= 0 && i >= frameIdx - numBackTraverse; i --)
 	{
 		Frame& preFrame = data.frames[i];
+		const Mat& preK = preFrame.K;
 		Features& preFeatures = frames[i].features;
 		int matchIdx = frameIdx -1 - i;
 		vector<DMatch>& matches = cachedMatches[matchIdx];
@@ -441,7 +465,7 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 				Point3d pt3d;
 				Point2d pts1 = preFeatures.positions[preFrameFeatureIdx];
 				Point2d pts2 = curFeatures.positions[curFrameFeatureIdx];
-				TriangulateSinglePointFromTwoView(pts1, pts2, preFrame.Rt, curFrame.Rt, data.camera_intrinsics, pt3d);
+				TriangulateSinglePointFromTwoView(pts1, pts2, preFrame.Rt, curFrame.Rt, preK, curK, pt3d);
 				registerNewMapPoint(data, pt3d, preFrame, preFrameFeatureIdx, curFrame, curFrameFeatureIdx);
 				count ++;
 			}		

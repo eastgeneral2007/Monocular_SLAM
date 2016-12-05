@@ -56,9 +56,9 @@ void loadImgFileList(string directory, int begin_frame, int end_frame, DataManag
         meta.framename=imgNamelist[i].meta.framename;
         meta.frameID=i;
         f.frameBuffer=imread(imgNamelist[i].meta.framename, CV_LOAD_IMAGE_UNCHANGED);
+        data.frames.push_back(f);
         // imshow("frame", f.frameBuffer);
         // waitKey(40);
-        data.frames.push_back(f);
     }
 }
 
@@ -168,30 +168,83 @@ void loadCameraIntrinsics_TUM1(DataManager& data) {
     static double cx = 318.643040;
     static double cy = 255.313989;
 
-    Mat& camera_intrinsics = data.camera_intrinsics;
+    Mat camera_intrinsics;
     camera_intrinsics = Mat::zeros(3, 3, CV_64F);
     camera_intrinsics.at<double>(0,0) = fx;
     camera_intrinsics.at<double>(0,2) = cx;
     camera_intrinsics.at<double>(1,1) = fy;
     camera_intrinsics.at<double>(1,2) = cy;
     camera_intrinsics.at<double>(2,2) = 1.f;
+
+    for(int i=0; i<data.frames.size(); i++) {
+        data.frames[i].K = camera_intrinsics.clone();
+    }
+
+    data.camera_intrinsics = camera_intrinsics.clone();
 }
 
 // TUM f1/f3
 void loadCameraIntrinsics_kinect(DataManager& data) {
-    // TODO: implement a proper loader in the future
-    static double fx = 525.0;
-    static double fy = 525.0;
-    static double cx = 319.5;
-    static double cy = 239.5;
 
-    Mat& camera_intrinsics = data.camera_intrinsics;
+    // TODO: implement a proper loader in the future
+    static double fx = 517.3;
+    static double fy = 516.5;
+    static double cx = 318.6;
+    static double cy = 255.3;
+
+    Mat camera_intrinsics;
     camera_intrinsics = Mat::zeros(3, 3, CV_64F);
     camera_intrinsics.at<double>(0,0) = fx;
     camera_intrinsics.at<double>(0,2) = cx;
     camera_intrinsics.at<double>(1,1) = fy;
     camera_intrinsics.at<double>(1,2) = cy;
     camera_intrinsics.at<double>(2,2) = 1.0f;
+
+    for(int i=0; i<data.frames.size(); i++) {
+        data.frames[i].K = camera_intrinsics.clone();
+    }
+
+    data.camera_intrinsics = camera_intrinsics.clone();
+}
+
+// middlebury dataset
+void loadCameraIntrinsicsAndGTRT_middleBury(DataManager& data, const string& filename, 
+                                            int begin_frame, int end_frame, int step) {
+
+    ifstream file;
+    file.open(filename);
+    int numImages;
+    file >> numImages;
+
+    for (int i=0; i < begin_frame; i++) {
+        string tmp;
+        getline(file,tmp);
+    }
+
+    for (int j=begin_frame; j<MIN(end_frame, numImages); j+=step) {
+        // fetch frame index
+        int i = (j-begin_frame)/step;
+        // skip file name
+        string tmp; file >> tmp;
+        // fetch frame reference
+        Frame& frame = data.frames[i];
+        // load camera intrinsics
+        frame.K = Mat::zeros(3,3,CV_64F);
+        file >> frame.K.at<double>(0,0);      file >> frame.K.at<double>(0,1);      file >> frame.K.at<double>(0,2);
+        file >> frame.K.at<double>(1,0);      file >> frame.K.at<double>(1,1);      file >> frame.K.at<double>(1,2);
+        file >> frame.K.at<double>(2,0);      file >> frame.K.at<double>(2,1);      file >> frame.K.at<double>(2,2);
+        // load ground truth camera R|t
+        frame.RtGt = Mat::zeros(3,4,CV_64F);
+        file >> frame.RtGt.at<double>(0,0);     file >> frame.RtGt.at<double>(0,1);     file >> frame.RtGt.at<double>(0,2);
+        file >> frame.RtGt.at<double>(1,0);     file >> frame.RtGt.at<double>(1,1);     file >> frame.RtGt.at<double>(1,2);
+        file >> frame.RtGt.at<double>(2,0);     file >> frame.RtGt.at<double>(2,1);     file >> frame.RtGt.at<double>(2,2);
+        file >> frame.RtGt.at<double>(0,3);     file >> frame.RtGt.at<double>(1,3);     file >> frame.RtGt.at<double>(2,3);
+
+        for (int i=0; i<(step-1); i++) {
+            string tmp;
+            getline(file,tmp);
+        }
+    }
 }
 
 void FrameLoader::load(DataManager& data) {
@@ -199,10 +252,14 @@ void FrameLoader::load(DataManager& data) {
     {
         loadCameraIntrinsics_TUM1(data);
         loadImgFileList(directory, begin_frame, end_frame, data, step);
-    }else{
+    }else if (directory.find("f1")!=string::npos || directory.find("f3")!=string::npos) {
         loadCameraIntrinsics_kinect(data);
         loadImgFileList(directory+"/rgb/", begin_frame, end_frame, data, step);
         loadGroundTruth(directory+"/groundtruth.txt/", begin_frame, end_frame, data);
         loadDepthFileList(directory+"/depth/", begin_frame, end_frame, data, step);
+    }
+    else if (directory.find("temple")!=string::npos) {
+        loadImgFileList(directory+"/", begin_frame, end_frame, data, step);
+        loadCameraIntrinsicsAndGTRT_middleBury(data, directory+"/temple_par.txt", begin_frame, end_frame, step);
     }
 }

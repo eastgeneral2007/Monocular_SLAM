@@ -14,59 +14,74 @@
 using namespace pcl;
 using namespace std;
 
+typedef pcl::PointXYZRGB PointType;
+typedef pcl::PointXYZRGBNormal PointTypeN;
 typedef pcl::PointCloud<pcl::PointXYZ>::Ptr    CloudPtr;
 typedef pcl::PointCloud<pcl::PointXYZRGB>::Ptr CloudRGB;
 typedef boost::shared_ptr<pcl::visualization::PCLVisualizer> VisPtr;
 
-// #define ShowOrbSlam
-// #define ShowGroundTruth
-// #define OnlyCamera
+
+///////////////////////////////////////////// Visualization Options /////////////////////////////////////////////
+// #define OnlyCamera				// Show only the camera 3D
+//#define ShowOrbSlam               // Show ORB SLAM point cloud & trajectory & cameras
+#define ShowGroundTruth             // Show ground truth point cloud & trajectory & cameras
+
+double depth_density_ratio = 0.2;   // depth map downsampling ratio [0, 1]:   0 no points,  1 original
+
+#define ShowMeshReconstruction      // To perform mesh reconstruction
+int displayForm = 2;             // Mesh representation: 0 for Wireframe(standard),  1 for surface, 2 for Points
+
+//#define PlotAllFrames             // To accumulate or show single frame
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 const static char* TITLE_NAME = "3D Visualizer";
 const static char* CLOUD_NAME = "map points";
 
 static CloudPtr generateTestCloud();
 static void renderPointCloud(VisPtr viewer, CloudRGB cloud);
-static VisPtr createVisualizer();
+static VisPtr createVisualizer(string TITLE);
 static CloudPtr MapPointsToCloudPtr(const vector<MapPoint>& points);
-static CloudRGB MapPointsToCloudRGB(DataManager& data, int frameIdx);
+static void MapPointsToCloudRGB(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & basic_cloud_ptr);
 static void CamPosToCloudRGB(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & basic_cloud_ptr);
 static void CamPosToCloudRGBWithGT(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & basic_cloud_ptr);
 static void DepthToCloudRGB_VOPose(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & basic_cloud_ptr);
 static void DepthToCloudRGB_GTPose(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & basic_cloud_ptr);
+static void filterPointCloud(CloudRGB & cloud, CloudRGB & cloud_filtered);
+static void removeOutliers(CloudRGB & cloud, CloudRGB & cloud_filtered);
+static void downSample(CloudRGB & cloud, CloudRGB & cloud_filtered);
 static PolygonMesh PossionReconstruction(CloudPtr cloud);
 void printMatrix(Mat &M, std::string matrix);
 void RtToWorldT(Mat &Rt, Mat &t_res);
+static void meshReconstruction(VisPtr viewer, CloudRGB & cloud);
 
 #ifdef DEBUG_POINTCLOUD_VISUALIZER
 static CloudPtr cloud;
 #endif
 
+
+////////////////////////////////// Initialization /////////////////////////////////
 void PointCloudVisualizer::init()
 {
 #ifdef DEBUG_POINTCLOUD_VISUALIZER
     cloud = generateTestCloud();
 #endif
-    viewer = createVisualizer();
+    viewer = createVisualizer("3D Visualizer: Point Cloud");
+    viewer ->addCoordinateSystem (1);
+    viewer2 = createVisualizer("3D Visualizer: 3D Triangle Mesh");
 }
 
 void PointCloudVisualizer::process(DataManager& data, int frameIdx)
 {
+    cout << endl<<frameIdx-1 <<endl;
     CloudRGB cloudMapPoints(new pcl::PointCloud<pcl::PointXYZRGB>);
     
     #ifdef ShowOrbSlam
     // To plot the orb map points 
-    cloudMapPoints = MapPointsToCloudRGB(data, frameIdx);
-
-    // TODO:: Mesh reconstruction from point clouds
-    // if (cloudMapPoints->width>20)
-    // {
-    //  pcl::PolygonMesh triangles = PossionReconstruction(cloud);
-    //  viewer->addPolygonMesh(triangles, "polygon", 0);
-    //}
+    MapPointsToCloudRGB(viewer, data, frameIdx, cloudMapPoints);
 
     // To plot the depth map form orb
-    DepthToCloudRGB_VOPose(viewer, data, frameIdx, cloudMapPoints);
+    CloudRGB cloudDepthPoints(new pcl::PointCloud<pcl::PointXYZRGB>);
+    DepthToCloudRGB_VOPose(viewer, data, frameIdx, cloudDepthPoints);
     #endif
 
     #ifdef ShowGroundTruth
@@ -74,12 +89,20 @@ void PointCloudVisualizer::process(DataManager& data, int frameIdx)
     DepthToCloudRGB_GTPose(viewer, data, frameIdx, cloudMapPoints);            // with ground truth depth map
     #endif
 
-    // To plot the camera trajectory only
-    // CamPosToCloudRGB(viewer, data, frameIdx, cloudMapPoints);        // without ground truth R|t
-    CamPosToCloudRGBWithGT(viewer, data, frameIdx, cloudMapPoints);     // with ground truth R|t
+    #ifdef ShowMeshReconstruction
+    // TODO:: Mesh reconstruction from point clouds
+    if (cloudMapPoints->points.size()>20)
+    {
+        //pcl::PolygonMesh triangles = PossionReconstruction(cloud);
+        //viewer->addPolygonMesh(triangles, "polygon", 0);
+        meshReconstruction(viewer2, cloudMapPoints);
+    }
+    #endif
 
-    renderPointCloud(viewer, cloudMapPoints);
-    viewer->spinOnce (10);
+    // To plot the camera trajectory only
+    CloudRGB cloudCamTrajectory(new pcl::PointCloud<pcl::PointXYZRGB>);
+    // CamPosToCloudRGB(viewer, data, frameIdx, cloudCamTrajectory);        // without ground truth R|t
+    CamPosToCloudRGBWithGT(viewer, data, frameIdx, cloudCamTrajectory);     // with ground truth R|t
 }
 
 bool PointCloudVisualizer::validationCheck(DataManager& data, int frameIdx)
@@ -87,11 +110,10 @@ bool PointCloudVisualizer::validationCheck(DataManager& data, int frameIdx)
     return true;
 }
 
-static VisPtr createVisualizer()
+static VisPtr createVisualizer(string TITLE)
 {
-    VisPtr viewer = VisPtr(new pcl::visualization::PCLVisualizer (TITLE_NAME));
+    VisPtr viewer = VisPtr(new pcl::visualization::PCLVisualizer (TITLE));
     viewer->setBackgroundColor (0.1, 0.1, 0.1);
-    viewer->addCoordinateSystem (1);
     viewer->initCameraParameters ();
     return (viewer);
 }
@@ -129,6 +151,8 @@ static CloudPtr generateTestCloud()
 }
 #endif
 
+
+////////////////////////////////// Draw trajectory /////////////////////////////////
 void printMatrix(cv::Mat &M, std::string matrix)
 {
     printf("Matrix \"%s\" is %i x %i\n", matrix.c_str(), M.rows, M.cols);
@@ -220,6 +244,8 @@ void DrawCamera(VisPtr viewer, Mat &Rt, int frameIdx, string flag)
     viewer->addLine(l4, z_axis, 0, 255, 0,  "z4"+flag+to_string(frameIdx), 0);
 }
 
+
+////////////////////////////////// Draw point cloud /////////////////////////////////
 static void CamPosToCloudRGB(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & basic_cloud_ptr)
 {
     pcl::PointXYZRGB basic_point, pre_point;
@@ -236,7 +262,7 @@ static void CamPosToCloudRGB(VisPtr viewer, DataManager& data, int frameIdx, Clo
         basic_point.b = 30;
         basic_cloud_ptr->points.push_back(basic_point);
     }
-    cout<<"Camera pos: "<<basic_point.x<<","<<basic_point.y<<","<<basic_point.z<<endl;
+    // cout<<"Camera pos: "<<basic_point.x<<","<<basic_point.y<<","<<basic_point.z<<endl;
     if (frameIdx > 0)
     {
         viewer->addLine(pre_point, basic_point, 80, 20, 20, to_string(frameIdx), 0);
@@ -303,6 +329,9 @@ static void CamPosToCloudRGBWithGT(VisPtr viewer, DataManager& data, int frameId
  
     basic_cloud_ptr->width = (int) basic_cloud_ptr->points.size ();
     basic_cloud_ptr->height = 1;
+    // renderPointCloud(viewer, basic_cloud_ptr);
+    //viewer->spinOnce (100); boost::this_thread::sleep
+    //        (boost::posix_time::microseconds (1000));
 }
 
 static CloudPtr MapPointsToCloudPtr(const vector<MapPoint>& points)
@@ -323,9 +352,8 @@ static CloudPtr MapPointsToCloudPtr(const vector<MapPoint>& points)
     return basic_cloud_ptr;    
 }
 
-static CloudRGB MapPointsToCloudRGB(DataManager& data, int frameIdx)
+static void MapPointsToCloudRGB(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB &basic_cloud_ptr)
 {
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr basic_cloud_ptr (new pcl::PointCloud<pcl::PointXYZRGB>);
     for (int i=0; i<data.mapPoints.size(); i++)
     {
         const MapPoint &point = data.mapPoints[i];
@@ -341,11 +369,134 @@ static CloudRGB MapPointsToCloudRGB(DataManager& data, int frameIdx)
     }
     basic_cloud_ptr->width = (int) basic_cloud_ptr->points.size ();
     basic_cloud_ptr->height = 1;
-    return basic_cloud_ptr;    
+    
+    if (viewer->contains(CLOUD_NAME)) {
+        viewer->updatePointCloud(basic_cloud_ptr, CLOUD_NAME);
+    }
+    else {
+        viewer->addPointCloud(basic_cloud_ptr, CLOUD_NAME);
+    }
+    viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, CLOUD_NAME);
 }
 
 
-static PolygonMesh PossionReconstruction(CloudPtr cloud)
+////////////////////////////////// Depth map visualization /////////////////////////////////
+static void DepthToCloudRGB_VOPose(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & cloudMapPoints)
+{
+    Mat depImg = data.frames[frameIdx].depthBuffer;
+    Mat rgbImg = data.frames[frameIdx].frameBuffer;
+    int h = depImg.rows;
+    int w = depImg.cols;
+    int step = 5;
+    double fx = data.camera_intrinsics.at<double>(0,0);
+    double fy = data.camera_intrinsics.at<double>(1,1);
+    double cx = data.camera_intrinsics.at<double>(0,2);
+    double cy = data.camera_intrinsics.at<double>(1,2);
+    float factor = 5000.0f;
+    Mat Rt = data.frames[frameIdx].Rt;
+    Mat R = Rt(Range(0,3), Range(0,3));
+    Mat t;
+    RtToWorldT(Rt, t);
+
+    for (int i=0; i<h; i+=step)
+    {
+        for (int j=0; j<w; j+=step)
+        {
+            Mat loc = Mat::zeros(3,1,CV_64F);
+            loc.at<double>(2,0) = depImg.at<float>(i,j)/factor;
+            loc.at<double>(0,0) = (i-cx) * loc.at<double>(2,0) / fx;
+            loc.at<double>(1,0) = (j-cy) * loc.at<double>(2,0) / fy;
+            loc = R*loc+t;
+
+            pcl::PointXYZRGB pixel;
+            pixel.x = loc.at<double>(0,0);
+            pixel.y = loc.at<double>(1,0);
+            pixel.z = loc.at<double>(2,0);
+            pixel.b = rgbImg.data[i * rgbImg.step + 3 * j ];
+            pixel.g = rgbImg.data[i * rgbImg.step + 3 * j + 1];
+            pixel.r = rgbImg.data[i * rgbImg.step + 3 * j + 2];
+
+            cloudMapPoints->points.push_back(pixel);
+        }
+    }
+    cloudMapPoints->width = (int) cloudMapPoints->points.size ();
+
+    #ifdef PlotAllFrames
+    string DEPTHMAP_NAME_ALL = "depth map_vo"+to_string(frameIdx);
+    viewer->addPointCloud(cloudMapPoints, DEPTHMAP_NAME_ALL);
+    viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, DEPTHMAP_NAME_ALL);
+    #else
+    string DEPTHMAP_NAME = "depth map_vo";
+    if (viewer->contains(DEPTHMAP_NAME)) {
+        viewer->updatePointCloud(cloudMapPoints, DEPTHMAP_NAME);
+    }
+    else {
+        viewer->addPointCloud(cloudMapPoints, DEPTHMAP_NAME);
+    }
+    viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, DEPTHMAP_NAME);
+    #endif
+
+    // cout <<"Depth cloud : # of pts: "<<cloudMapPoints->points.size()<<endl;
+}
+
+static void DepthToCloudRGB_GTPose(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & cloudMapPoints)
+{
+    Mat depImg = data.frames[frameIdx].depthBuffer;
+    Mat rgbImg = data.frames[frameIdx].frameBuffer;
+    int h = depImg.rows;
+    int w = depImg.cols;
+    double fx = data.camera_intrinsics.at<double>(0,0);
+    double fy = data.camera_intrinsics.at<double>(1,1);
+    double cx = data.camera_intrinsics.at<double>(0,2);
+    double cy = data.camera_intrinsics.at<double>(1,2);
+    float factor = 5000.0f;
+    Mat Rt = data.frames[frameIdx].RtGt;
+    Mat R  = Rt(Range(0,3), Range(0,3)); 
+    Mat t  = Rt(Range(0,3), Range(3,4)); ;
+    int step = 1.0/depth_density_ratio;
+    for (int i=0; i<h; i+=step)
+    {
+        for (int j=0; j<w; j+=step)
+        {
+            Mat loc = Mat::zeros(3,1,CV_64F);
+            loc.at<double>(2,0) = depImg.at<float>(i,j)/factor;
+            loc.at<double>(0,0) = (i-cx) * loc.at<double>(2,0) / fx;
+            loc.at<double>(1,0) = (j-cy) * loc.at<double>(2,0) / fy;
+            loc = R*loc+t;
+
+            pcl::PointXYZRGB pixel;
+            pixel.x = loc.at<double>(0,0);
+            pixel.y = loc.at<double>(1,0);
+            pixel.z = loc.at<double>(2,0);
+            pixel.b = rgbImg.data[i * rgbImg.step + 3 * j ];
+            pixel.g = rgbImg.data[i * rgbImg.step + 3 * j + 1];
+            pixel.r = rgbImg.data[i * rgbImg.step + 3 * j + 2];
+
+            cloudMapPoints->points.push_back(pixel);
+        }
+    }
+    cloudMapPoints->width = (int) cloudMapPoints->points.size ();
+
+    #ifdef PlotAllFrames
+    string DEPTHMAP_NAME_ALL = "depth map_gt"+to_string(frameIdx);
+    viewer->addPointCloud(cloudMapPoints, DEPTHMAP_NAME_ALL);
+    viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, DEPTHMAP_NAME_ALL);
+    #else
+    string DEPTHMAP_NAME = "depth map_gt";
+    if (viewer->contains(DEPTHMAP_NAME)) {
+        viewer->updatePointCloud(cloudMapPoints, DEPTHMAP_NAME);
+    }
+    else {
+        viewer->addPointCloud(cloudMapPoints, DEPTHMAP_NAME);
+    }
+    viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, DEPTHMAP_NAME);
+    #endif
+}
+
+
+/////////////////////////// Mesh reconstruction ///////////////////////////
+// Mesh possion reconstruction for CloudPtr
+static PolygonMesh PossionReconstruction(CloudPtr& cloud)
 {
     cout << "num of pts: " << cloud->width << endl;
     cout << "begin passthrough filter" << endl;
@@ -419,103 +570,135 @@ static PolygonMesh PossionReconstruction(CloudPtr cloud)
     // Finish
 }
 
-static void DepthToCloudRGB_VOPose(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & cloudMapPoints)
+static void filterPointCloud(CloudRGB & cloud, CloudRGB & cloud_filtered)
 {
-    Mat depImg = data.frames[frameIdx].depthBuffer;
-    Mat rgbImg = data.frames[frameIdx].frameBuffer;
-    int h = depImg.rows;
-    int w = depImg.cols;
-    int step = 5;
-    double fx = data.camera_intrinsics.at<double>(0,0);
-    double fy = data.camera_intrinsics.at<double>(1,1);
-    double cx = data.camera_intrinsics.at<double>(0,2);
-    double cy = data.camera_intrinsics.at<double>(1,2);
-    float factor = 5000.0f;
-    Mat Rt = data.frames[frameIdx].Rt;
-    Mat R = Rt(Range(0,3), Range(0,3));
-    Mat t;
-    RtToWorldT(Rt, t);
-
-    for (int i=0; i<h; i+=step)
-    {
-        for (int j=0; j<w; j+=step)
-        {
-            Mat loc = Mat::zeros(3,1,CV_64F);
-            loc.at<double>(2,0) = depImg.at<float>(i,j)/factor;
-            loc.at<double>(0,0) = (i-cx) * loc.at<double>(2,0) / fx;
-            loc.at<double>(1,0) = (j-cy) * loc.at<double>(2,0) / fy;
-            loc = R*loc+t;
-
-            pcl::PointXYZRGB pixel;
-            pixel.x = loc.at<double>(0,0);
-            pixel.y = loc.at<double>(1,0);
-            pixel.z = loc.at<double>(2,0);
-            pixel.b = rgbImg.data[i * rgbImg.step + 3 * j ];
-            pixel.g = rgbImg.data[i * rgbImg.step + 3 * j + 1];
-            pixel.r = rgbImg.data[i * rgbImg.step + 3 * j + 2];
-
-            cloudMapPoints->points.push_back(pixel);
-        }
-    }
-    string DEPTHMAP_NAME = "depth map";
-    if (viewer->contains(DEPTHMAP_NAME)) {
-        viewer->updatePointCloud(cloudMapPoints, DEPTHMAP_NAME);
-    }
-    else {
-        viewer->addPointCloud(cloudMapPoints, DEPTHMAP_NAME);
-    }
-    viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, DEPTHMAP_NAME);
+    pcl::PassThrough<PointXYZRGB> filter;
+    filter.setInputCloud(cloud);
+    filter.setFilterFieldName ("x");
+    filter.setFilterLimits (-4000, 4000);
+    filter.setFilterFieldName ("y");
+    filter.setFilterLimits (-4000, 4000);
+    filter.setFilterFieldName ("z");
+    filter.setFilterLimits (-4000, 4000);
+    filter.filter(*cloud_filtered);
+    cout << "[ "<<cloud_filtered->width << " points ] after PassThrough filter.  "  << endl;
 }
 
-static void DepthToCloudRGB_GTPose(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & cloudMapPoints)
+static void downSample(CloudRGB & cloud, CloudRGB & cloud_filtered)
 {
-    Mat depImg = data.frames[frameIdx].depthBuffer;
-    Mat rgbImg = data.frames[frameIdx].frameBuffer;
-    int h = depImg.rows;
-    int w = depImg.cols;
-    int step = 5;
-    double fx = data.camera_intrinsics.at<double>(0,0);
-    double fy = data.camera_intrinsics.at<double>(1,1);
-    double cx = data.camera_intrinsics.at<double>(0,2);
-    double cy = data.camera_intrinsics.at<double>(1,2);
-    float factor = 5000.0f;
-    Mat Rt = data.frames[frameIdx].RtGt;
-    Mat R  = Rt(Range(0,3), Range(0,3)); 
-    Mat t  = Rt(Range(0,3), Range(3,4)); ;
+    pcl::VoxelGrid<pcl::PointXYZRGB> sor;
+    sor.setInputCloud(cloud);
+    //sor.setLeafSize(0.01f, 0.01f, 0.01f);          // created with a leaf size of 1cm
+    sor.setLeafSize(0.01f, 0.01f, 0.01f); 
+    sor.filter(*cloud_filtered);
+    cout << "[ " << cloud_filtered->width << " points ] after downsampling by VoxelGrid. " <<endl;
+}
 
-    for (int i=0; i<h; i+=step)
-    {
-        for (int j=0; j<w; j+=step)
-        {
-            Mat loc = Mat::zeros(3,1,CV_64F);
-            loc.at<double>(2,0) = depImg.at<float>(i,j)/factor;
-            loc.at<double>(0,0) = (i-cx) * loc.at<double>(2,0) / fx;
-            loc.at<double>(1,0) = (j-cy) * loc.at<double>(2,0) / fy;
-            loc = R*loc+t;
+static void removeOutliers(CloudRGB & cloud, CloudRGB & cloud_filtered)
+{
+    pcl::StatisticalOutlierRemoval<pcl::PointXYZRGB> sor;
+    sor.setInputCloud (cloud);
+    // Set number of neighbors to analyze
+    sor.setMeanK (50);
+    sor.setStddevMulThresh (1.0);
+    //sor.setNegative (true);  // to get outliers only
+    sor.filter (*cloud_filtered);
+    cout  << "[ " << cloud_filtered->width << " points ] after StatisticalOutlierRemoval.  " << endl;
+}
 
-            pcl::PointXYZRGB pixel;
-            pixel.x = loc.at<double>(0,0);
-            pixel.y = loc.at<double>(1,0);
-            pixel.z = loc.at<double>(2,0);
-            pixel.b = rgbImg.data[i * rgbImg.step + 3 * j ];
-            pixel.g = rgbImg.data[i * rgbImg.step + 3 * j + 1];
-            pixel.r = rgbImg.data[i * rgbImg.step + 3 * j + 2];
+// Mesh possion reconstruction for CloudRGB
+static void meshReconstruction(VisPtr viewer2, CloudRGB &cloud_ori)
+{
+    int pts_num = cloud_ori->points.size();
+    cout << "Started Poisson mesh reconstruction [ "<<pts_num <<" points ] " <<endl;
 
-            cloudMapPoints->points.push_back(pixel);
-        }
-    }
-    string DEPTHMAP_NAME_ALL = "depth map"+to_string(frameIdx);
-    viewer->addPointCloud(cloudMapPoints, DEPTHMAP_NAME_ALL);
-    viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, DEPTHMAP_NAME_ALL);
+    // Filtered by PassThrough
+    CloudRGB filtered(new pcl::PointCloud<PointXYZRGB>());
+    filterPointCloud(cloud_ori,filtered);
+
+    // Downsampled by VoxelGrid
+    CloudRGB sampled(new pcl::PointCloud<PointXYZRGB>());
+    //downSample(cloud_ori, sampled);
+    downSample(filtered, sampled);
+
+    // Filtered by StatisticalOutlierRemoval
+    CloudRGB filtered2(new pcl::PointCloud<PointXYZRGB>());
+    //removeOutliers(cloud_ori, filtered2);
+    removeOutliers(sampled, filtered2);
     
-    /*
-    string DEPTHMAP_NAME = "depth map";
-    if (viewer->contains(DEPTHMAP_NAME)) {
-        viewer->updatePointCloud(cloudMapPoints, DEPTHMAP_NAME);
+    CloudRGB cloud = filtered2;
+
+    // Normal estimation
+    pcl::NormalEstimation<PointType, Normal> normEst;
+    pcl::PointCloud<Normal>::Ptr normals (new pcl::PointCloud<Normal>);
+
+    // Create kdtree representation of cloud,
+    // and pass it to the normal estimation object.
+    pcl::search::KdTree<PointType>::Ptr tree (new pcl::search::KdTree<PointType>);
+    tree->setInputCloud (cloud);
+    normEst.setInputCloud (cloud);
+    normEst.setSearchMethod (tree);
+
+    // Use neighbor points for estimating normal
+    normEst.setKSearch (MIN(pts_num, 20));
+    normEst.compute (*normals);
+    // normals should not contain the point normals + surface
+    // curvatures
+
+    // Concatenate the XYZ and normal fields
+    pcl::PointCloud<PointTypeN>::Ptr cloud_with_normals (new pcl::PointCloud<PointTypeN>);
+    pcl::concatenateFields (*cloud, *normals, *cloud_with_normals);
+    // cloud_with_normals = cloud + normals
+
+    // Create search tree
+    pcl::search::KdTree<PointTypeN>::Ptr tree2 (new pcl::search::KdTree<PointTypeN>);
+    tree2->setInputCloud (cloud_with_normals);
+
+    // Initialize objects
+    // psn - for surface reconstruction algorithm
+    // triangles - for storage of reconstructed triangles
+    pcl::Poisson<PointTypeN> psn;
+    pcl::PolygonMesh triangles;
+
+    psn.setInputCloud(cloud_with_normals);
+    psn.setSearchMethod(tree2);
+    psn.setDepth(8);                            // psn_depth
+    psn.setSolverDivide(8);                     // setSolverDivide
+    psn.setIsoDivide(8);                        // isoDivide
+    psn.setSamplesPerNode(1);                    // psn_samplesPerNode
+    psn.setScale(1.1);
+    psn.setConfidence(false);
+    psn.reconstruct (triangles);
+
+    //psn.setOutputPolygons(false);
+    //std::string str, str2;
+    //str.append(filePath).append("-mesh.vtk");
+    //pcl::io::saveVTKFile (str, triangles);
+    
+    // Create viewer object and show mesh
+    string meshname = "3D mesh";
+    if (viewer2->contains(meshname)) {
+        viewer2->updatePolygonMesh(triangles, meshname);
     }
     else {
-        viewer->addPointCloud(cloudMapPoints, DEPTHMAP_NAME);
+        viewer2->addPolygonMesh(triangles, meshname);
     }
-    viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 2, DEPTHMAP_NAME);
-    */
+    
+    // Setting type of mesh representation
+    // Wireframe = standard "mesh" representation
+    switch(displayForm){
+        case 0: 
+            viewer2->setRepresentationToWireframeForAllActors ();
+            break;
+        case 1:
+            viewer2->setRepresentationToSurfaceForAllActors ();
+            break;
+        default:
+            viewer2->setRepresentationToPointsForAllActors ();
+            break;
+    }
+
+    viewer2->spinOnce (1000); boost::this_thread::sleep
+            (boost::posix_time::microseconds (10000));
+
 }
