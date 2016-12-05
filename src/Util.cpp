@@ -158,10 +158,10 @@ void Util::BundleAdjustment(DataManager &data, vector<Frame> &frames, vector<Map
                     huber_kernel->setDelta(THRESH_HUBER_FULL_BA);
                 }
 
-                e->fx = data.camera_intrinsics.at<double>(0,0);
-                e->fy = data.camera_intrinsics.at<double>(1,1);
-                e->cx = data.camera_intrinsics.at<double>(0,2);
-                e->cy = data.camera_intrinsics.at<double>(1,2);
+                e->fx = observer->K.at<double>(0,0);
+                e->fy = observer->K.at<double>(1,1);
+                e->cx = observer->K.at<double>(0,2);
+                e->cy = observer->K.at<double>(1,2);
 
                 optimizer.addEdge(e);
             }
@@ -278,10 +278,10 @@ void Util::PoseBundleAdjustment(Frame &frame, DataManager &data, int n_round) {
                 huber_kernel->setDelta(THRESH_HUBER);
 
                 // put intrisics to this unary edge
-                e->fx = data.camera_intrinsics.at<double>(0,0);
-                e->fy = data.camera_intrinsics.at<double>(1,1);
-                e->cx = data.camera_intrinsics.at<double>(0,2);
-                e->cy = data.camera_intrinsics.at<double>(1,2);
+                e->fx = frame.K.at<double>(0,0);
+                e->fy = frame.K.at<double>(1,1);
+                e->cx = frame.K.at<double>(0,2);
+                e->cy = frame.K.at<double>(1,2);
 
                 // put world position to this unary edge
                 Point3d point = this_map_point->worldPosition;
