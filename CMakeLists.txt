@@ -64,6 +64,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 file(GLOB_RECURSE SOURCE_FILES "src/*.cpp" "src/*.h")
 file(GLOB_RECURSE UNITTESTG2O_FILES "UnitTest/g2o/*.cpp" "UnitTest/g2o/*.h")
 file(GLOB_RECURSE UNITTESTPCL_FILES "UnitTest/pcl/*.cpp" "UnitTest/pcl/*.h")
+file(GLOB_RECURSE ERL_FILES "UnitTest/visualiseERL/*.cpp" "UnitTest/visualiseERL/*.h")
 # file(GLOB_RECURSE UNITTESTCGAL_FILES "UnitTest/cgal/*.cpp" "UnitTest/cgal/*.h")
 set(TESTING_SOURCES ${SOURCE_FILES})
 list (REMOVE_ITEM TESTING_SOURCES "${PROJECT_SOURCE_DIR}/src/main.cpp")
@@ -71,6 +72,11 @@ list (REMOVE_ITEM TESTING_SOURCES "${PROJECT_SOURCE_DIR}/src/main.cpp")
 # Build Targets
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 target_link_libraries(${PROJECT_NAME} ${LINKED_LIBS})
+
+# Build ERL Visualiser
+# add_executable(VisualiseERL ${TESTING_SOURCES} ${ERL_FILES})
+# target_compile_definitions(VisualiseERL PRIVATE OnlyCamera=1)
+# target_link_libraries(VisualiseERL ${LINKED_LIBS})
 
 # Build UnitTestg2o
 # add_executable(TestG2O ${TESTING_SOURCES} ${UNITTESTG2O_FILES})
