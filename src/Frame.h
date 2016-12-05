@@ -63,6 +63,9 @@ public:
     // features
     Features features;
 
+    // per-frame camera intrinsics.
+    cv::Mat K;
+
     bool operator < (const Frame & frameB) const {
         return frameB.meta.timestamp > meta.timestamp;
     }

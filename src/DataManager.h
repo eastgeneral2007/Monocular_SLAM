@@ -22,8 +22,8 @@ using namespace cv;
 
 class DataManager{
 public:
-    // camera intrinsics
-    cv::Mat camera_intrinsics;
+    // camera intrinsics (deprecated)
+    cv::Mat camera_intrinsics; // should not be used in the code anymore
 
     // each original frame object read in and processed
     vector<Frame> frames;

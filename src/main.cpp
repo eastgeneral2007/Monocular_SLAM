@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
 	DataManager dm;
 
 	// Data loading
-	int begin_frame = 0, end_frame = 200, step = 2;
+	int begin_frame = 0, end_frame = 20, step = 2;
 	FrameLoader frameLoader(config.inputDirectory, begin_frame, end_frame, step);
 	frameLoader.load(dm);
 
@@ -40,8 +40,8 @@ int main(int argc, char **argv) {
 	ProcessingPipeline ORBSlam;
 	ORBSlam.addStage(new ORBFeatureExtractor());
 	ORBSlam.addStage(new CameraPoseEstimator());
-	//ORBSlam.addStage(new Optimiser());
-	ORBSlam.addStage(new Optimiser()); // this is for full BA, to turn on pose BA, uncomment off invokation in pnpPoseEstimation()
+	// ORBSlam.addStage(new Optimiser());
+	// ORBSlam.addStage(new Optimiser()); // this is for full BA, to turn on pose BA, uncomment off invokation in pnpPoseEstimation()
 	ORBSlam.addStage(new TrajectoryVisualizer());
 	ORBSlam.addStage(new PointCloudVisualizer());
 	
