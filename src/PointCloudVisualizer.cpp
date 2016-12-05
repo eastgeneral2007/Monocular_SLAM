@@ -227,28 +227,30 @@ void DrawCamera(VisPtr viewer, const Mat &Rt, int frameIdx, string name)
 {
     double dist = 0.3;
     double scale = 0.5;
-    Mat x = Mat(3,1,CV_64F); x.at<double>(0,0) = dist; 
-    Mat y = Mat(3,1,CV_64F); y.at<double>(1,0) = dist; 
-    Mat z = Mat(3,1,CV_64F); z.at<double>(2,0) = dist; 
+    Mat x = Mat::zeros(3,1,CV_64F); x.at<double>(0,0) = dist; 
+    Mat y = Mat::zeros(3,1,CV_64F); y.at<double>(1,0) = dist; 
+    Mat z = Mat::zeros(3,1,CV_64F); z.at<double>(2,0) = dist; 
     Mat R = Mat::eye(3,3,CV_64F);
     Mat t = Mat::zeros(3,1,CV_64F);
     Rt(Range(0,3), Range(0,3)).copyTo(R);
     Rt(Range(0,3), Range(3,4)).copyTo(t);
    
-    PointXYZ curr_pos(t.at<double>(0,0),t.at<double>(1,0),t.at<double>(2,0));
+    Mat pos = Mat::zeros(3,1,CV_64F);
+    RtToWorldT(Rt, pos);
+    PointXYZ curr_pos(pos.at<double>(0,0),pos.at<double>(1,0),pos.at<double>(2,0));
     
-    Mat dx = R * x;
-    Mat dy = R * y;
-    Mat dz = R * z;
+    Mat x1 = R.inv() * (x-t);
+    Mat y1 = R.inv() * (y-t);
+    Mat z1 = R.inv() * (z-t);
 
-    Mat x1 = dx + t;
-    Mat y1 = dy + t;
-    Mat z1 = dz + t;
-    
     PointXYZ x_axis(x1.at<double>(0,0),x1.at<double>(1,0),x1.at<double>(2,0));
     PointXYZ y_axis(y1.at<double>(0,0),y1.at<double>(1,0),y1.at<double>(2,0));
     PointXYZ z_axis(z1.at<double>(0,0),z1.at<double>(1,0),z1.at<double>(2,0));
 
+    Mat dx = x1-pos;
+    Mat dy = y1-pos;
+    Mat dz = z1-pos;
+    
     // x,y,z axis
     viewer->addLine(curr_pos, x_axis, 255, 0, 0,  "axis_x"+name+to_string(frameIdx), 0);
     viewer->addLine(curr_pos, y_axis, 0, 255, 0,  "axis_y"+name+to_string(frameIdx), 0);
@@ -260,10 +262,10 @@ void DrawCamera(VisPtr viewer, const Mat &Rt, int frameIdx, string name)
 
     #ifdef drawCameraPyramid
     // draw camera pyramid
-    Mat rect1 = ( dx + dy)*scale + t;
-    Mat rect2 = ( dx - dy)*scale + t;
-    Mat rect3 = (-dx - dy)*scale + t;
-    Mat rect4 = (-dx + dy)*scale + t;
+    Mat rect1 = ( dx + dy)*scale + pos;
+    Mat rect2 = ( dx - dy)*scale + pos;
+    Mat rect3 = (-dx - dy)*scale + pos;
+    Mat rect4 = (-dx + dy)*scale + pos;
     PointXYZ l1(rect1.at<double>(0,0),rect1.at<double>(1,0),rect1.at<double>(2,0));
     PointXYZ l2(rect2.at<double>(0,0),rect2.at<double>(1,0),rect2.at<double>(2,0));
     PointXYZ l3(rect3.at<double>(0,0),rect3.at<double>(1,0),rect3.at<double>(2,0));
@@ -307,6 +309,7 @@ static void CamPosToCloudRGBVO(VisPtr viewer, DataManager& data, int frameIdx, C
             pre_point.y = basic_point.y;
             pre_point.z = basic_point.z;
             (data.frames[i].Rt).copyTo(Rt);
+            Rt(Range(0,3), Range(3,4)).copyTo(t);
             RtToWorldT(Rt,t);
             basic_point = addPt(t, basic_point, 220, 30, 30);
         }
@@ -333,6 +336,7 @@ static void CamPosToCloudRGBGT(VisPtr viewer, DataManager& data, int frameIdx, C
             pre_point_gt.y = basic_point_gt.y;
             pre_point_gt.z = basic_point_gt.z;
             (data.frames[i].RtGt).copyTo(Rt);
+            Rt(Range(0,3), Range(3,4)).copyTo(t);
             RtToWorldT(Rt,t);
             basic_point_gt = addPt(t, basic_point_gt, 30, 220, 30);
         }
@@ -412,7 +416,8 @@ static void DepthToCloudRGB_VOPose(VisPtr viewer, DataManager& data, int frameId
     Mat R = Mat::zeros(3,3,CV_64F);
     Mat t = Mat::zeros(3,1,CV_64F);
     Rt(Range(0,3), Range(0,3)).copyTo(R);
-    RtToWorldT(Rt, t);
+    Rt(Range(0,3), Range(3,4)).copyTo(t);
+    // RtToWorldT(Rt, t);
 
     for (int i=0; i<h; i+=step)
     {
@@ -422,7 +427,7 @@ static void DepthToCloudRGB_VOPose(VisPtr viewer, DataManager& data, int frameId
             loc.at<double>(2,0) = depImg.at<float>(i,j)/factor;
             loc.at<double>(0,0) = (i-cx) * loc.at<double>(2,0) / fx;
             loc.at<double>(1,0) = (j-cy) * loc.at<double>(2,0) / fy;
-            loc = R*loc+t;
+            loc = R.inv()*(loc-t);
 
             pcl::PointXYZRGB pixel;
             pixel.x = loc.at<double>(0,0);
@@ -481,7 +486,7 @@ static void DepthToCloudRGB_GTPose(VisPtr viewer, DataManager& data, int frameId
             loc.at<double>(2,0) = depImg.at<float>(i,j)/factor;
             loc.at<double>(0,0) = (i-cx) * loc.at<double>(2,0) / fx;
             loc.at<double>(1,0) = (j-cy) * loc.at<double>(2,0) / fy;
-            loc = R*loc+t;
+            loc = R.inv()*(loc-t);
 
             pcl::PointXYZRGB pixel;
             pixel.x = loc.at<double>(0,0);

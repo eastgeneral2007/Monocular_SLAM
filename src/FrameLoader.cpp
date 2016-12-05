@@ -246,9 +246,9 @@ void loadCameraIntrinsicsAndGTRT_middleBury(DataManager& data, const string& fil
         file >> frame.RtGt.at<double>(1,0);     file >> frame.RtGt.at<double>(1,1);     file >> frame.RtGt.at<double>(1,2);
         file >> frame.RtGt.at<double>(2,0);     file >> frame.RtGt.at<double>(2,1);     file >> frame.RtGt.at<double>(2,2);
         file >> frame.RtGt.at<double>(0,3);     file >> frame.RtGt.at<double>(1,3);     file >> frame.RtGt.at<double>(2,3);
-        Mat RtGt_new = Mat::zeros(3,4,CV_64F);
-        WorldRtToRT(frame.RtGt, RtGt_new);
-        RtGt_new.copyTo(frame.RtGt);
+        // Mat RtGt_new = Mat::zeros(3,4,CV_64F);
+        // WorldRtToRT(frame.RtGt, RtGt_new);
+        // RtGt_new.copyTo(frame.RtGt);
         for (int i=0; i<(step-1); i++) {
             string tmp;
             getline(file,tmp);
