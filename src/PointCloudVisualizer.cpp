@@ -24,15 +24,16 @@ typedef boost::shared_ptr<pcl::visualization::PCLVisualizer> VisPtr;
 ///////////////////////////////////////////// Visualization Options /////////////////////////////////////////////
 //#define ShowOrbSlam               // Show ORB SLAM point cloud 
 #define ShowGroundTruth             // Show ground truth point cloud 
-//#define ShowCameraTrajectory        // When visualizing point cloud, show trajectory & cameras
-#define OnlyTrajectory                // don't show point cloud
+#define ShowCameraTrajectory        // When visualizing point cloud, show trajectory & cameras
+//#define OnlyTrajectory                // don't show point cloud
+
+#define drawCameraPyramid
+#define PlotAllFrames             // To accumulate or show single frame
 
 double depth_density_ratio = 0.2;   // depth map downsampling ratio [0, 1]:   0 no points,  1 original
 
 #define ShowMeshReconstruction      // To perform mesh reconstruction
 int displayForm = 2;             // Mesh representation: 0 for Wireframe(standard),  1 for surface, 2 for Points
-
-//#define PlotAllFrames             // To accumulate or show single frame
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 const static char* TITLE_NAME = "3D Visualizer";
@@ -84,7 +85,7 @@ void PointCloudVisualizer::process(DataManager& data, int frameIdx)
     #ifndef OnlyTrajectory
     #ifdef ShowOrbSlam
     MapPointsToCloudRGB(viewer, data, frameIdx, cloudMapPoints);
-    DepthToCloudRGB_VOPose(viewer, data, frameIdx, cloudDepthPoints);
+    //DepthToCloudRGB_VOPose(viewer, data, frameIdx, cloudDepthPoints);
     #ifdef ShowCameraTrajectory
     CamPosToCloudRGBVO(viewer, data, frameIdx, cloudCamTrajectoryVO);        // without ground truth R|t
     #endif
@@ -183,7 +184,7 @@ void RtToWorldT(Mat &Rt, Mat &t_res)
     Mat R,t;
     Rt(Range(0,3),Range(0,3)).copyTo(R);
     Rt(Range(0,3),Range(3,4)).copyTo(t);
-    Mat t_new = -R.inv()*t;
+    Mat t_new = R.inv()*t;
     t_new.copyTo(t_res);
     //printMatrix(R, "R");
     //printMatrix(t, "t");
@@ -206,20 +207,20 @@ void RtToWorldRT(Mat& Rt, Mat &Rt_res)
     Rt_new.copyTo(Rt_res);
 }
 
-void DrawCamera(VisPtr viewer, Mat &Rt, int frameIdx, string flag)
+void DrawCamera(VisPtr viewer, Mat &Rt, int frameIdx, string flag, string name)
 {
     double dist = 0.3;
     double scale = 0.5;
     Mat x = Mat(3,1,CV_64F); x.at<double>(0,0) = dist; 
     Mat y = Mat(3,1,CV_64F); y.at<double>(1,0) = dist; 
     Mat z = Mat(3,1,CV_64F); z.at<double>(2,0) = dist; 
-    Mat R = Mat(3,3,CV_64F);
-    Mat t = Mat(3,1,CV_64F);
+    Mat R = Mat::eye(3,3,CV_64F);
+    Mat t = Mat::zeros(3,1,CV_64F);
     Rt(Range(0,3), Range(0,3)).copyTo(R);
     if (flag == "2")
     {
         Rt(Range(0,3), Range(3,4)).copyTo(t);
-    }else if (flag == "1"){
+    }else{
         RtToWorldT(Rt,t);
     }
    
@@ -238,11 +239,12 @@ void DrawCamera(VisPtr viewer, Mat &Rt, int frameIdx, string flag)
     PointXYZ z_axis(z1.at<double>(0,0),z1.at<double>(1,0),z1.at<double>(2,0));
 
     // x,y,z axis
-    viewer->addLine(curr_pos, x_axis, 255, 0, 0,  "axis_x"+flag+to_string(frameIdx), 0);
-    viewer->addLine(curr_pos, y_axis, 0, 255, 0,  "axis_y"+flag+to_string(frameIdx), 0);
-    viewer->addLine(curr_pos, z_axis, 0, 0, 255,  "axis_z"+flag+to_string(frameIdx), 0);
+    viewer->addLine(curr_pos, x_axis, 255, 0, 0,  "axis_x"+name+to_string(frameIdx), 0);
+    viewer->addLine(curr_pos, y_axis, 0, 255, 0,  "axis_y"+name+to_string(frameIdx), 0);
+    viewer->addLine(curr_pos, z_axis, 0, 0, 255,  "axis_z"+name+to_string(frameIdx), 0);
 
-    // camera base plane
+    #ifdef drawCameraPyramid
+    // draw camera pyramid
     Mat rect1 = ( dx + dy)*scale + t;
     Mat rect2 = ( dx - dy)*scale + t;
     Mat rect3 = (-dx - dy)*scale + t;
@@ -251,16 +253,17 @@ void DrawCamera(VisPtr viewer, Mat &Rt, int frameIdx, string flag)
     PointXYZ l2(rect2.at<double>(0,0),rect2.at<double>(1,0),rect2.at<double>(2,0));
     PointXYZ l3(rect3.at<double>(0,0),rect3.at<double>(1,0),rect3.at<double>(2,0));
     PointXYZ l4(rect4.at<double>(0,0),rect4.at<double>(1,0),rect4.at<double>(2,0));
-    viewer->addLine(l1, l2, 0, 255, 0,  "l1"+flag+to_string(frameIdx), 0);
-    viewer->addLine(l2, l3, 0, 255, 0,  "l2"+flag+to_string(frameIdx), 0);
-    viewer->addLine(l3, l4, 0, 255, 0,  "l3"+flag+to_string(frameIdx), 0);
-    viewer->addLine(l4, l1, 0, 255, 0,  "l4"+flag+to_string(frameIdx), 0);
+    viewer->addLine(l1, l2, 0, 255, 0,  "l1"+name+to_string(frameIdx), 0);
+    viewer->addLine(l2, l3, 0, 255, 0,  "l2"+name+to_string(frameIdx), 0);
+    viewer->addLine(l3, l4, 0, 255, 0,  "l3"+name+to_string(frameIdx), 0);
+    viewer->addLine(l4, l1, 0, 255, 0,  "l4"+name+to_string(frameIdx), 0);
 
     // square pyramid lines
-    viewer->addLine(l1, z_axis, 0, 255, 0,  "z1"+flag+to_string(frameIdx), 0);
-    viewer->addLine(l2, z_axis, 0, 255, 0,  "z2"+flag+to_string(frameIdx), 0);
-    viewer->addLine(l3, z_axis, 0, 255, 0,  "z3"+flag+to_string(frameIdx), 0);
-    viewer->addLine(l4, z_axis, 0, 255, 0,  "z4"+flag+to_string(frameIdx), 0);
+    viewer->addLine(l1, z_axis, 0, 255, 0,  "z1"+name+to_string(frameIdx), 0);
+    viewer->addLine(l2, z_axis, 0, 255, 0,  "z2"+name+to_string(frameIdx), 0);
+    viewer->addLine(l3, z_axis, 0, 255, 0,  "z3"+name+to_string(frameIdx), 0);
+    viewer->addLine(l4, z_axis, 0, 255, 0,  "z4"+name+to_string(frameIdx), 0);
+    #endif
 }
 
 
@@ -292,7 +295,7 @@ static void CamPosToCloudRGBVO(VisPtr viewer, DataManager& data, int frameIdx, C
     
     Rt_world = data.frames[frameIdx].Rt;
     // RtToWorldRT(data.frames[frameIdx].Rt, Rt_world);
-    DrawCamera(viewer, Rt_world, frameIdx, "1");
+    DrawCamera(viewer, Rt_world, frameIdx, "1", "VO");
 }
 
 static void CamPosToCloudRGBGT(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB & basic_cloud_ptr, string flag)
@@ -311,13 +314,13 @@ static void CamPosToCloudRGBGT(VisPtr viewer, DataManager& data, int frameIdx, C
             }
             addPt(t, basic_point_gt, 30, 220, 30);
         }
-        viewer->addLine(pre_point_gt, basic_point_gt, 20, 250, 20, "gt"+to_string(frameIdx), 0);
+        viewer->addLine(pre_point_gt, basic_point_gt, 20, 250, 20, flag + "gt"+to_string(frameIdx), 0);
     }
     // cout<<frameIdx-1 << ")\tCamera est. pos: \t"<<basic_point.x<<","<<basic_point.y<<","<<basic_point.z;
     // cout<< "\tVS\tGT: \t"<<basic_point_gt.x<<","<<basic_point_gt.y<<","<<basic_point_gt.z<<endl;
     
     Rt_world = data.frames[frameIdx].RtGt;
-    DrawCamera(viewer, Rt_world, frameIdx, flag);
+    DrawCamera(viewer, Rt_world, frameIdx, flag, "GT");
 }
 
 static CloudPtr MapPointsToCloudPtr(const vector<MapPoint>& points)
@@ -575,7 +578,7 @@ static void downSample(CloudRGB & cloud, CloudRGB & cloud_filtered)
     pcl::VoxelGrid<pcl::PointXYZRGB> sor;
     sor.setInputCloud(cloud);
     //sor.setLeafSize(0.01f, 0.01f, 0.01f);          // created with a leaf size of 1cm
-    sor.setLeafSize(0.1f, 0.1f, 0.1f); 
+    sor.setLeafSize(0.01f, 0.01f, 0.01f); 
     sor.filter(*cloud_filtered);
     cout << "[ " << cloud_filtered->width << " points ] after downsampling by VoxelGrid. " <<endl;
 }
