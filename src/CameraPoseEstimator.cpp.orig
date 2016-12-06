@@ -10,11 +10,15 @@
 // @Yu
 
 //  #define DEBUG_CameraPoseEstimator_VisualizeGoodFeatures
-//    #define DEBUG_CamercmakaPoseEstimator_SanityCheck
+//    #define DEBUG_CameraPoseEstimator_SanityCheck
 //    #define DEBUG_CameraPoseEstimator_VisualizeMatching
+<<<<<<< HEAD
+// #define DEBUG_CameraPoseEstimator_VisualizeEpipolarline
+=======
 #define DEBUG_CameraPoseEstimator_VisualizeEpipolarline
+>>>>>>> 63dc760
 
-#define DEBUG_CameraPoseEstimator_ReportReprojectionError
+// #define DEBUG_CameraPoseEstimator_ReportReprojectionError
 
 #include "CameraPoseEstimator.h"
 #include "CommonMath.h"
@@ -171,6 +175,78 @@ static bool ExtractRTfromE(const Mat& E,
 	return true;
 }
 
+<<<<<<< HEAD
+/**
+ * given the correspondences, compute the fundamental matrix
+ *
+ * keypoints1 and keypoints2: keypoints extracted from image1 and image2
+ * matches: the corresponding relationship between keypoints1 and keypoints2
+ * inlierIdx1, inlierIdx2: the aligned inlier idx of keypoints1 and keypoints2.
+ */
+static void computeFundamentalMatrix(const vector<Point2d>& positions1,
+									 const vector<Point2d>& positions2,
+									 const vector<DMatch>& matches,
+									 vector<Point2d>& inlierPositions1,
+									 vector<Point2d>& inlierPositions2,
+									 Mat& F,
+									 vector<unsigned char>& status)
+{
+	static const double MAX_DISTANCE = 3.;
+	static const double CONFIDENCE = 0.99;
+
+	// construct aligned position arrays
+	vector<Point2f> inputs1;
+	vector<Point2f> inputs2;
+	Point2f max_i(0.0f, 0.0f);
+	for (int i=0; i<matches.size(); i++) {
+		Point2f input1 = positions1[matches[i].queryIdx];
+		Point2f input2 = positions1[matches[i].trainIdx];
+		if (input1.x > max_i.x)
+			max_i.x = input1.x;
+		if (input1.y > max_i.y)
+			max_i.y = input1.y;
+	}
+
+	float ratio = MAX(max_i.x, max_i.y);
+	for (int i=0; i<matches.size(); i++) {
+		Point2f input1 = positions1[matches[i].queryIdx / ratio];
+		Point2f input2 = positions1[matches[i].trainIdx / ratio];
+		inputs1.push_back(input1);
+		inputs2.push_back(input2);
+	}
+
+
+	// fundamental matrix estimation using eight point algorithm with RANSAC
+	F = findFundamentalMat(inputs1, inputs2, CV_FM_RANSAC, MAX_DISTANCE, CONFIDENCE, status);
+
+	// construct aligned inlier position arrays
+	inlierPositions1.clear();
+	inlierPositions2.clear();
+	for(int i = 0; i < status.size(); i++) {
+		if (status[i]) {
+			inlierPositions1.push_back(inputs1[i]*ratio);
+			inlierPositions2.push_back(inputs2[i]*ratio);
+		}
+	}
+
+	// use the inliers and compute F again
+	vector<Point2f> newInputs1;
+	vector<Point2f> newInputs2;
+	vector<DMatch> selectedMatches;
+	for (int i=0; i<status.size(); i++) {
+		if (status[i]) {
+			newInputs1.push_back(inputs1[i]);
+			newInputs2.push_back(inputs2[i]);
+		}
+	}
+	F = findFundamentalMat(newInputs1, newInputs2, CV_FM_8POINT);
+	cout << F <<endl;
+	double T[3][3]={{1.0/ratio,0,0}, {0, 1.0/ratio,0}, {0,0,1.0}};
+	Mat T_ratio=Mat(3,3,CV_64F, T);
+	F = T_ratio.t() * F * T_ratio;
+}
+=======
+>>>>>>> 63dc760
 
 /**
  * compute essential matrix from fundamental matrix given intrinsics K
@@ -750,7 +826,7 @@ vector<int> getInlier (vector<p_match> &p_matched, Mat &F) {
     // sampson distance
     double d = x2tFx1*x2tFx1 / (Fx1u*Fx1u+Fx1v*Fx1v+Ftx2u*Ftx2u+Ftx2v*Ftx2v);
     #ifdef DEBUG_CameraPoseEstimator_VisualizeEpipolarline
-	//cout << fabs(d)<< "   ";
+	// cout << fabs(d)<< "   ";
 	#endif
     // check threshold
     if (fabs(d) < inlier_threshold)
