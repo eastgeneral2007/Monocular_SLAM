@@ -15,6 +15,7 @@
 #include "ProcessingNode.h"
 #include "CommonCV.h"
 
+
 class CameraPoseEstimator: public ProcessingNode
 {
 public:
@@ -25,5 +26,6 @@ private:
 	void initialPoseEstimation(DataManager& data, int frameIdx);
 	void pnpPoseEstimation(DataManager& data, int frameIdx);
 };
+
 
 #endif

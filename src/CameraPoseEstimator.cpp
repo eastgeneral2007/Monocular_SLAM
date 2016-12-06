@@ -21,7 +21,35 @@
 #include "ParamConfig.h"
 #include "SFMDebugging.h"
 #include "Util.h"
+double inlier_threshold = 0.00001;
+int ransac_iters = 2000;
 
+// structure for storing matches
+struct p_match {
+	float   u1p,v1p; // u,v-coordinates in previous left  image
+	float   u1c,v1c; // u,v-coordinates in current  left  image
+};
+
+extern void printMatrix(const Mat & M, std::string matrix);
+// Opencv
+static void computeFundamentalMatrix(const vector<Point2d>& positions1,
+									 const vector<Point2d>& positions2,
+									 const vector<DMatch>& matches,
+									 vector<Point2d>& inlierPositions1,
+									 vector<Point2d>& inlierPositions2,
+									 Mat& F,
+									 vector<unsigned char>& status);
+
+// from scratch
+static void computeFundamentalMatrix2(const vector<Point2d>& positions1,
+									 const vector<Point2d>& positions2,
+									 const vector<DMatch>& matches,
+									 vector<Point2d>& inlierPositions1,
+									 vector<Point2d>& inlierPositions2,
+									 Mat& F,
+									 vector<int>& status);
+
+static vector<int> getInlier (vector<p_match> &p_matched, Mat &F);
 
 static double computeReprojectionError(const Point3d& pts3d, const Point2d& pts2d,
 									   const Mat& Rt, const Mat& K)
@@ -143,57 +171,6 @@ static bool ExtractRTfromE(const Mat& E,
 	return true;
 }
 
-/**
- * given the correspondences, compute the fundamental matrix
- *
- * keypoints1 and keypoints2: keypoints extracted from image1 and image2
- * matches: the corresponding relationship between keypoints1 and keypoints2
- * inlierIdx1, inlierIdx2: the aligned inlier idx of keypoints1 and keypoints2.
- */
-static void computeFundamentalMatrix(const vector<Point2d>& positions1,
-									 const vector<Point2d>& positions2,
-									 const vector<DMatch>& matches,
-									 vector<Point2d>& inlierPositions1,
-									 vector<Point2d>& inlierPositions2,
-									 Mat& F,
-									 vector<unsigned char>& status)
-{
-	static const double MAX_DISTANCE = 3.;
-	static const double CONFIDENCE = 0.99;
-
-	// construct aligned position arrays
-	vector<Point2d> inputs1;
-	vector<Point2d> inputs2;
-	for (int i=0; i<matches.size(); i++) {
-		inputs1.push_back(positions1[matches[i].queryIdx]);
-		inputs2.push_back(positions2[matches[i].trainIdx]);
-	}
-
-	// fundamental matrix estimation using eight point algorithm with RANSAC
-	F = findFundamentalMat(inputs1, inputs2, CV_FM_RANSAC, MAX_DISTANCE, CONFIDENCE, status);
-
-	// construct aligned inlier position arrays
-	inlierPositions1.clear();
-	inlierPositions2.clear();
-	for(int i = 0; i < status.size(); i++) {
-		if (status[i]) {
-			inlierPositions1.push_back(inputs1[i]);
-			inlierPositions2.push_back(inputs2[i]);
-		}
-	}
-
-	// use the inliers and compute F again
-	vector<Point2d> newInputs1;
-	vector<Point2d> newInputs2;
-	vector<DMatch> selectedMatches;
-	for (int i=0; i<status.size(); i++) {
-		if (status[i]) {
-			newInputs1.push_back(inputs1[i]);
-			newInputs2.push_back(inputs2[i]);
-		}
-	}
-	F = findFundamentalMat(newInputs1, newInputs2, CV_FM_8POINT);
-}
 
 /**
  * compute essential matrix from fundamental matrix given intrinsics K
@@ -304,13 +281,15 @@ void CameraPoseEstimator::initialPoseEstimation(DataManager& data, int frameIdx)
 	Mat F;
 	vector<Point2d> goodPositions1;
 	vector<Point2d> goodPositions2;
-	vector<unsigned char> status;
-	computeFundamentalMatrix(positions1, positions2, matches, goodPositions1, goodPositions2, F, status);
-	F.convertTo(F, CV_64F);
+	// vector<unsigned char> status;
+	// computeFundamentalMatrix(positions1, positions2, matches, goodPositions1, goodPositions2, F, status);
+	// F.convertTo(F, CV_64F);
+	vector<int> status;
+	computeFundamentalMatrix2(positions1, positions2, matches, goodPositions1, goodPositions2, F, status);
 
 #ifdef DEBUG_CameraPoseEstimator_VisualizeMatching
 	vector<DMatch> selectedMatches;
-	for (int i=0; i<status.size(); i++) {
+	for (int i=0; i<(int)status.size(); i++) {
 		if (status[i]) {
 			selectedMatches.push_back(matches[i]);
 		}
@@ -546,4 +525,259 @@ void CameraPoseEstimator::process(DataManager& data, int frameIdx)
 
 bool CameraPoseEstimator::validationCheck(DataManager& data, int frameIdx) {
 	return true;
+}
+
+
+
+/**
+ * given the correspondences, compute the fundamental matrix
+ *
+ * keypoints1 and keypoints2: keypoints extracted from image1 and image2
+ * matches: the corresponding relationship between keypoints1 and keypoints2
+ * inlierIdx1, inlierIdx2: the aligned inlier idx of keypoints1 and keypoints2.
+ */
+static void computeFundamentalMatrix(const vector<Point2d>& positions1,
+									 const vector<Point2d>& positions2,
+									 const vector<DMatch>& matches,
+									 vector<Point2d>& inlierPositions1,
+									 vector<Point2d>& inlierPositions2,
+									 Mat& F,
+									 vector<unsigned char>& status)
+{
+	static const double MAX_DISTANCE = 3.;
+	static const double CONFIDENCE = 0.99;
+
+	// construct aligned position arrays
+	vector<Point2d> inputs1;
+	vector<Point2d> inputs2;
+	for (int i=0; i<matches.size(); i++) {
+		inputs1.push_back(positions1[matches[i].queryIdx]);
+		inputs2.push_back(positions2[matches[i].trainIdx]);
+	}
+
+	// fundamental matrix estimation using eight point algorithm with RANSAC
+	F = findFundamentalMat(inputs1, inputs2, CV_FM_RANSAC, MAX_DISTANCE, CONFIDENCE, status);
+
+	// construct aligned inlier position arrays
+	inlierPositions1.clear();
+	inlierPositions2.clear();
+	for(int i = 0; i < status.size(); i++) {
+		if (status[i]) {
+			inlierPositions1.push_back(inputs1[i]);
+			inlierPositions2.push_back(inputs2[i]);
+		}
+	}
+
+	// use the inliers and compute F again
+	vector<Point2d> newInputs1;
+	vector<Point2d> newInputs2;
+	vector<DMatch> selectedMatches;
+	for (int i=0; i<status.size(); i++) {
+		if (status[i]) {
+			newInputs1.push_back(inputs1[i]);
+			newInputs2.push_back(inputs2[i]);
+		}
+	}
+	F = findFundamentalMat(newInputs1, newInputs2, CV_FM_8POINT);
+}
+
+
+
+////////////////////////////////// estimate F //////////////////////////////////
+
+void fundamentalMatrix(const vector<p_match> &p_matched, const vector<int> &active, Mat &F);
+vector<int> getRandomSample(int N,int num);
+static vector<int> getInlier (vector<p_match> &p_matched, Mat &F);
+
+static void computeFundamentalMatrix2(const vector<Point2d>& positions1,
+									 const vector<Point2d>& positions2,
+									 const vector<DMatch>& matches,
+									 vector<Point2d>& inlierPositions1,
+									 vector<Point2d>& inlierPositions2,
+									 Mat& F,
+									 vector<int>& inliers)
+{  	
+	// number of active p_matched
+	int N = (int)matches.size();
+	// construct aligned position arrays
+	vector<Point2f> inputs1;
+	vector<Point2f> inputs2;
+	double maxt = 0;
+	for (int i=0; i<(int)matches.size(); i++) {
+		maxt = MAX(maxt, MAX(positions1[matches[i].queryIdx].x, positions2[matches[i].trainIdx].x));
+		maxt = MAX(maxt, MAX(positions1[matches[i].queryIdx].y, positions2[matches[i].trainIdx].y));
+	}
+
+	for (int i=0; i<(int)matches.size(); i++) {
+		Point2f p1, p2;
+		p1.x = (double)positions1[matches[i].queryIdx].x / maxt;
+		p1.y = (double)positions1[matches[i].queryIdx].y / maxt;
+		p2.x = (double)positions1[matches[i].trainIdx].x / maxt;
+		p2.y = (double)positions1[matches[i].trainIdx].y / maxt;
+		inputs1.push_back(p1);
+		inputs2.push_back(p2);
+	}
+
+	// create constraint matrix A
+	vector<p_match> p_matched;
+	for (int i=0; i<N; i++) {
+		p_match m;
+		m.u1p = inputs1[i].x;
+		m.v1p = inputs1[i].y;
+		m.u1c = inputs2[i].x;
+		m.v1c = inputs2[i].y;
+		p_matched.push_back(m);
+	}
+
+	// initial RANSAC estimate of F
+	inliers.clear();
+	for (int k=0;k<ransac_iters;k++) {
+
+    // draw random sample set	
+	vector<int> active = getRandomSample(N,8);
+	fundamentalMatrix(p_matched, active, F);
+	vector<int> inliers_curr = getInlier(p_matched,F);
+
+    // update model if we are better
+	if (inliers_curr.size()>inliers.size())
+		inliers = inliers_curr;
+	}
+	
+
+	// construct aligned inlier position arrays
+	inlierPositions1.clear();
+	inlierPositions2.clear();
+	for(int i = 0; i < inliers.size(); i++) {
+		if (inliers[i]) {
+			inlierPositions1.push_back(inputs1[inliers[i]]);
+			inlierPositions2.push_back(inputs2[inliers[i]]);
+		}
+	}
+
+	// are there enough inliers?
+	if (inliers.size()<10){
+		cout <<"Not enough inliers when estimating F & RANSAC. "<<endl;
+		return;
+	}
+  
+	// refine F using all inliers
+	fundamentalMatrix(p_matched, inliers, F); 
+	double times[3][3] = {{1.0/maxt,0,0},{0,1.0/maxt,0},{0,0,1.0}};
+	Mat times_F = Mat(3,3,CV_64F, times);
+	Mat res = times_F.t() * F * times_F;
+	res.copyTo(F);
+}
+
+void fundamentalMatrix(const vector<p_match> &p_matched, const vector<int> &active, Mat &F)
+{
+	int N = active.size();
+	Mat A(N,9, CV_64F);
+	for (int i=0; i<N; i++) {
+		p_match m = p_matched[active[i]];
+		A.at<double>(i,0) = m.u1c*m.u1p;
+		A.at<double>(i,1) = m.u1c*m.v1p;
+		A.at<double>(i,2) = m.u1c;
+		A.at<double>(i,3) = m.v1c*m.u1p;
+		A.at<double>(i,4) = m.v1c*m.v1p;
+		A.at<double>(i,5) = m.v1c;
+		A.at<double>(i,6) = m.u1p;
+		A.at<double>(i,7) = m.v1p;
+		A.at<double>(i,8) = 1;
+	}
+   
+  // compute singular value decomposition of A
+	Mat U,W,Vt;
+	TakeSVD(A,U,Vt,W);
+	//   A.svd(U,W,V);
+
+	Mat V = Vt.t();
+	// extract fundamental matrix from the column of V corresponding to the smallest singular value
+	F = Mat::zeros(3,3,CV_64F);
+	F.at<double>(0,0) = V.at<double>(0,8);
+	F.at<double>(0,1) = V.at<double>(1,8);
+	F.at<double>(0,2) = V.at<double>(2,8);
+	F.at<double>(1,0) = V.at<double>(3,8);
+	F.at<double>(1,1) = V.at<double>(4,8);
+	F.at<double>(1,2) = V.at<double>(5,8);
+	F.at<double>(2,0) = V.at<double>(6,8);
+	F.at<double>(2,1) = V.at<double>(7,8);
+	F.at<double>(2,2) = V.at<double>(8,8);
+	printMatrix(F,"F");
+
+	// enforce rank 2
+	TakeSVD(F,U,Vt,W);
+	//   F.svd(U,W,V);
+	W.at<double>(2,0) = 0;
+	F = U*Mat::diag(W)*Vt;
+}
+
+vector<int> getInlier (vector<p_match> &p_matched, Mat &F) {
+  // extract fundamental matrix
+  double f00 = F.at<double>(0,0); double f01 = F.at<double>(0,1); double f02 = F.at<double>(0,2);
+  double f10 = F.at<double>(1,0); double f11 = F.at<double>(1,1); double f12 = F.at<double>(1,2);
+  double f20 = F.at<double>(2,0); double f21 = F.at<double>(2,1); double f22 = F.at<double>(2,2);
+  
+  // loop variables
+  double u1,v1,u2,v2;
+  double x2tFx1;
+  double Fx1u,Fx1v,Fx1w;
+  double Ftx2u,Ftx2v;
+  
+  // vector with inliers
+  vector<int> inliers;
+  
+  // for all matches do
+  for (int i=0; i<(int)p_matched.size(); i++) {
+
+    // extract matches
+    u1 = p_matched[i].u1p;
+    v1 = p_matched[i].v1p;
+    u2 = p_matched[i].u1c;
+    v2 = p_matched[i].v1c;
+    
+    // F*x1
+    Fx1u = f00*u1+f01*v1+f02;
+    Fx1v = f10*u1+f11*v1+f12;
+    Fx1w = f20*u1+f21*v1+f22;
+    
+    // F'*x2
+    Ftx2u = f00*u2+f10*v2+f20;
+    Ftx2v = f01*u2+f11*v2+f21;
+    
+    // x2'*F*x1
+    x2tFx1 = u2*Fx1u+v2*Fx1v+Fx1w;
+    
+    // sampson distance
+    double d = x2tFx1*x2tFx1 / (Fx1u*Fx1u+Fx1v*Fx1v+Ftx2u*Ftx2u+Ftx2v*Ftx2v);
+    
+    // check threshold
+    if (fabs(d) < inlier_threshold)
+      inliers.push_back(i);
+  }
+
+  // return set of all inliers
+  return inliers;
+}
+
+
+vector<int> getRandomSample(int N,int num) {
+
+  // init sample and totalset
+  vector<int> sample;
+  vector<int> totalset;
+  
+  // create vector containing all indices
+  for (int i=0; i<N; i++)
+    totalset.push_back(i);
+
+  // add num indices to current sample
+  sample.clear();
+  for (int i=0; i<num; i++) {
+    int j = rand()%totalset.size();
+    sample.push_back(totalset[j]);
+    totalset.erase(totalset.begin()+j);
+  }
+  
+  // return sample
+  return sample;
 }
