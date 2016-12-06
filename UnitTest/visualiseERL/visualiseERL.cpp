@@ -9,25 +9,36 @@
 using namespace std;
 using namespace cv;
 
+#define DEBUG_LOG
+
 int main(int argc, char **argv) {
      
     DataManager dm;
-    cv::Mat intrinsics_f1 = (Mat_<double>(3,3) << 525.0,  0,   319.5000,
-    0,   525.0,   239.5000,
+    cv::Mat intrinsics_f1 = (Mat_<double>(3,3) << 517.306408,  0,   318.643040,
+    0,   516.469215,   255.313989,
     0,   0,    1);
     // load the .csv frames
-    if (argc < 2) {
+    if (argc < 3) {
         printf("\n");
-        printf("Usage:  <input_frame_directory>\n");
+        printf("Usage:  <input_frame_directory> <input_info_directory>\n");
         printf("\n");
         exit(-1);
     }
+#ifdef DEBUG
     cout << "Input path:" << argv[1] << endl;
-    vector<Frame> ERL_frames = Util::loadFramesOnlyIdRt(argv[1]);
+    cout << "Info path:" << argv[2] << endl;
+#endif
+    string image_path = argv[1];
+    string info_path = argv[2];
+
+    vector<Frame> ERL_frames = Util::loadFramesOnlyIdRt(info_path+"/ERL_frames.csv");
+    map<int, string> frame_id_to_imgfile = Util::loadFrameIdToImageFileName(info_path + "/out_info.txt");
     // assign intrinsics to each frame
     for (int i =0;i<ERL_frames.size();i++) {
         ERL_frames[i].K = intrinsics_f1;
-        cout << "ERL_frames[" << i << "]'s Rt:\n" << ERL_frames[i].Rt << endl; 
+#ifdef DEBUG        
+        cout << "ERL_frames[" << i << "]'s Rt:\n" << ERL_frames[i].Rt << endl;
+#endif 
     }
 
     dm.frames = ERL_frames;
@@ -35,13 +46,16 @@ int main(int argc, char **argv) {
     // Pipeline for ERl visualisation
 	ProcessingPipeline ERLVisualisation;
 	// ERLVisualisation.addStage(new TrajectoryVisualizer());
-    Mat for_stop = Mat::zeros(384, 512, CV_64F);
 	ERLVisualisation.addStage(new PointCloudVisualizer());
 	
 	// launch the pipeline
 	for (int i=0; i<dm.frames.size(); i++) {
-		ERLVisualisation.process(dm, i);
-        imshow("for_stop", for_stop);
+		// process
+        ERLVisualisation.process(dm, i);
+        
+        // visualise the actual frame image at this timestamp
+        cv::Mat this_stamp_im = imread(image_path + "/" + frame_id_to_imgfile[dm.frames[i].meta.frameID], CV_LOAD_IMAGE_COLOR);
+        imshow("this_stamp_im", this_stamp_im);
         waitKey(10);
 	}
 }

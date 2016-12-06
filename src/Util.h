@@ -45,6 +45,8 @@ public:
     static vector<Frame> loadFramesOnlyIdRt(string frame_filename);
     // load only mappoint id + Optimised XYZ from .csv files
     static vector<MapPoint> loadMapPointsOnlyIdXYZ(string map_points_filename);
+    // load a frame id to image name mapping for externel inputs
+    static map<int, string> loadFrameIdToImageFileName(string info_filename);
 
 };
 

@@ -81,7 +81,7 @@ void PointCloudVisualizer::init()
 
 void PointCloudVisualizer::process(DataManager& data, int frameIdx)
 {
-    cout << endl<<frameIdx-1 <<endl;
+    cout << endl<< "last frame idx:" << frameIdx-1 <<endl;
     CloudRGB cloudMapPoints(new pcl::PointCloud<pcl::PointXYZRGB>);
     CloudRGB cloudCamTrajectoryVO(new pcl::PointCloud<pcl::PointXYZRGB>);
     CloudRGB cloudCamTrajectoryGT(new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -233,7 +233,7 @@ void WorldRtToRT(const Mat& Rt, Mat &Rt_res)
 void DrawCamera(VisPtr viewer, const Mat &Rt, int frameIdx, string name)
 {
     double dist = 1;
-    double scale = 0.5;
+    double scale = 0.2;
     Mat x = Mat::zeros(3,1,CV_64F); x.at<double>(0,0) = dist; 
     Mat y = Mat::zeros(3,1,CV_64F); y.at<double>(1,0) = dist; 
     Mat z = Mat::zeros(3,1,CV_64F); z.at<double>(2,0) = dist; 

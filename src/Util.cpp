@@ -587,3 +587,27 @@ vector<MapPoint> Util::loadMapPointsOnlyIdXYZ(string map_points_filename) {
     return map_points;
 }
 
+map<int, string> Util::loadFrameIdToImageFileName(string info_filename) {
+    ifstream info_f(info_filename.c_str());
+    map<int, string> frame_id_to_file;
+    string this_line;
+
+    while (!info_f.eof()) {
+        getline(info_f, this_line);
+        if (this_line.length() == 0) {
+            continue;
+        }
+        int id;
+        string this_file_name;
+
+        istringstream is_with_space(this_line);
+        is_with_space >> id;
+        is_with_space >> this_file_name;
+        frame_id_to_file[id] = this_file_name;
+    }
+
+    info_f.close();
+
+    return frame_id_to_file;
+}
+
