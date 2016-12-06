@@ -28,12 +28,14 @@ typedef boost::shared_ptr<pcl::visualization::PCLVisualizer> VisPtr;
 //#define OnlyTrajectory                // don't show point cloud
 
 #define drawCameraPyramid
+#define showTrajectoryLines
+
 #define PlotAllFrames             // To accumulate or show single frame
 
 double depth_density_ratio = 0.05;   // depth map downsampling ratio [0, 1]:   0 no points,  1 original
 
 // #define ShowMeshReconstruction      // To perform mesh reconstruction
-int displayForm = 0;             // Mesh representation: 0 for Wireframe(standard),  1 for surface, 2 for Points
+int displayForm = 2;             // Mesh representation: 0 for Wireframe(standard),  1 for surface, 2 for Points
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 const static char* TITLE_NAME = "3D Visualizer";
@@ -59,6 +61,9 @@ void RtToWorldRT(const Mat & Rt, Mat & Rt_res);
 void WorldRtToRT(const Mat & Rt, Mat & Rt_res);
 static void meshReconstruction(VisPtr viewer, CloudRGB & cloud);
 void keyboardEventOccurred (const pcl::visualization::KeyboardEvent &event, void* viewer_void);
+
+// extern vector<int> getPixelRGBAvg(DataManager & data, MapPoint p);
+// extern vector<int> getPixelRGBCurr(DataManager & data, MapPoint p);
 
 #ifdef DEBUG_POINTCLOUD_VISUALIZER
 static CloudPtr cloud;
@@ -325,7 +330,9 @@ static void CamPosToCloudRGBVO(VisPtr viewer, DataManager& data, int frameIdx, C
         }
         // cout << pre_point.x<<" "<<pre_point.y<<" "<<pre_point.z<<endl;
         // cout << basic_point.x<<" "<<basic_point.y<<" "<<basic_point.z<<endl;
-        viewer->addLine(pre_point, basic_point, 250, 20, 20, to_string(frameIdx), 0);
+        #ifdef showTrajectoryLines
+        viewer->addLine(pre_point, basic_point, 40, 20, 20, to_string(frameIdx), 0);
+        #endif
     }
     
     (data.frames[frameIdx].Rt).copyTo(Rt_world);
@@ -352,7 +359,9 @@ static void CamPosToCloudRGBGT(VisPtr viewer, DataManager& data, int frameIdx, C
         }
         // cout << pre_point_gt.x<<" "<<pre_point_gt.y<<" "<<pre_point_gt.z<<endl;
         // cout << basic_point_gt.x<<" "<<basic_point_gt.y<<" "<<basic_point_gt.z<<endl;
-        viewer->addLine(pre_point_gt, basic_point_gt, 20, 250, 20, "gt"+to_string(frameIdx), 0);
+        #ifdef showTrajectoryLines
+        viewer->addLine(pre_point_gt, basic_point_gt, 20, 40, 20, "gt"+to_string(frameIdx), 0);
+        #endif
     }
     // cout<<frameIdx-1 << ")\tCamera est. pos: \t"<<basic_point.x<<","<<basic_point.y<<","<<basic_point.z;
     // cout<< "\tVS\tGT: \t"<<basic_point_gt.x<<","<<basic_point_gt.y<<","<<basic_point_gt.z<<endl;
@@ -379,6 +388,58 @@ static CloudPtr MapPointsToCloudPtr(const vector<MapPoint>& points)
     return basic_cloud_ptr;    
 }
 
+vector<int> getPixelRGBAvg(DataManager & data, int i)
+{
+    vector<int> rgb;
+    MapPoint &p=data.mapPoints[i];
+    rgb.push_back(0);
+    rgb.push_back(0);
+    rgb.push_back(0);
+    map<int, int> observerToIndex = p.observerToIndex;
+    int rsum=0;
+    for (map<int,int>::iterator i = observerToIndex.begin(); i != observerToIndex.end(); ++i)
+    {
+        // cout <<"idx:" << i->first << "    second,  "<<i->second<<endl;
+        // double idx = p.getFeatureIdxFromObservingFrame(i->first-1);
+        // Features &f= data.frames[i->first].features;
+        // cout << f.positions.size()<<endl;
+        // f.positions[i->second];
+        double x = data.frames[i->first].features.positions[i->second].x;
+        // cout <<data.frames[i->first].features.positions[i->second].x<<endl;
+        double y = data.frames[i->first].features.positions[i->second].y;
+        double b = data.frames[i->first].frameBuffer.at<Vec3b>(y,x)(0);
+        double g = data.frames[i->first].frameBuffer.at<Vec3b>(y,x)(1);
+        double r = data.frames[i->first].frameBuffer.at<Vec3b>(y,x)(2);
+        rgb[0]+=r;
+        rgb[1]+=g;
+        rgb[2]+=b;
+    }
+    rgb[0]/=observerToIndex.size();
+    rgb[1]/=observerToIndex.size();
+    rgb[2]/=observerToIndex.size();
+    return rgb;
+}
+
+vector<int> getPixelRGBCurr(DataManager & data, const MapPoint &p)
+{
+    vector<int> rgb;
+    rgb.push_back(0);
+    rgb.push_back(0);
+    rgb.push_back(0);
+    int rsum=0;
+    map<int, int> observerToIndex = p.observerToIndex;
+    map<int,int>::iterator i = observerToIndex.begin();
+    double x = data.frames[i->first].features.positions[i->second].x;
+    double y = data.frames[i->first].features.positions[i->second].y;
+    double b = data.frames[i->first].frameBuffer.at<Vec3b>(y,x)(0);
+    double g = data.frames[i->first].frameBuffer.at<Vec3b>(y,x)(1);
+    double r = data.frames[i->first].frameBuffer.at<Vec3b>(y,x)(2);
+    rgb[0]=r;
+    rgb[1]=g;
+    rgb[2]=b;
+    return rgb;
+}
+
 static void MapPointsToCloudRGB(VisPtr viewer, DataManager& data, int frameIdx, CloudRGB &basic_cloud_ptr)
 {
     for (int i=0; i<data.mapPoints.size(); i++)
@@ -388,9 +449,10 @@ static void MapPointsToCloudRGB(VisPtr viewer, DataManager& data, int frameIdx, 
         basic_point.x = point.worldPosition.x;
         basic_point.y = point.worldPosition.y;
         basic_point.z = point.worldPosition.z;
-        basic_point.r = 30;
-        basic_point.g = 30;
-        basic_point.b = 220;
+        vector<int> rgb = getPixelRGBAvg(data, i); 
+        basic_point.r = rgb[0];  //30;
+        basic_point.g = rgb[1];  //30;
+        basic_point.b = rgb[2];  //220;
         // cout<<"pos: "<<basic_point.x<<","<<basic_point.y<<","<<basic_point.z<<endl;
         basic_cloud_ptr->points.push_back(basic_point);
     }
@@ -660,7 +722,7 @@ static void meshReconstruction(VisPtr viewer2, CloudRGB &cloud_ori)
     //removeOutliers(cloud_ori, filtered2);
     removeOutliers(sampled, filtered2);
     
-    CloudRGB cloud = filtered2;
+    CloudRGB cloud = cloud_ori;
 
     // Normal estimation
     pcl::NormalEstimation<PointType, Normal> normEst;
@@ -674,7 +736,7 @@ static void meshReconstruction(VisPtr viewer2, CloudRGB &cloud_ori)
     normEst.setSearchMethod (tree);
 
     // Use neighbor points for estimating normal
-    normEst.setKSearch (MIN(pts_num, 20));
+    normEst.setKSearch (MIN(pts_num, 8));
     normEst.compute (*normals);
     // normals should not contain the point normals + surface
     // curvatures
@@ -693,13 +755,13 @@ static void meshReconstruction(VisPtr viewer2, CloudRGB &cloud_ori)
     // triangles - for storage of reconstructed triangles
     pcl::Poisson<PointTypeN> psn;
     pcl::PolygonMesh triangles;
-
+    int depth = 8;
     psn.setInputCloud(cloud_with_normals);
     psn.setSearchMethod(tree2);
-    psn.setDepth(8);                            // psn_depth
-    psn.setSolverDivide(8);                     // setSolverDivide
-    psn.setIsoDivide(8);                        // isoDivide
-    psn.setSamplesPerNode(1);                    // psn_samplesPerNode
+    psn.setDepth(depth);                            // psn_depth
+    psn.setSolverDivide(depth);                     // setSolverDivide
+    psn.setIsoDivide(depth);                        // isoDivide
+    psn.setSamplesPerNode(depth);                    // psn_samplesPerNode
     psn.setScale(1.1);
     psn.setConfidence(false);
     psn.reconstruct (triangles);

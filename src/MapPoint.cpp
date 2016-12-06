@@ -4,6 +4,7 @@
 
 #include "MapPoint.h"
 #include "Frame.h"
+// #include "DataManager.h"
 
 void MapPoint::addObservingFrame(int frameIdx, int featureIdx)
 {
@@ -26,3 +27,4 @@ void MapPoint::deleteObservingFrame(int frameIdx)
     }
     observerToIndex.erase(frameIdx);
 }
+

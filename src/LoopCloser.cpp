@@ -46,7 +46,7 @@ bool LoopCloser::DetectLoop()
             count_max = count;    
         }
     }
-    printf("Loop candidates: &d, &d", &i, &ind_max);
+    printf("Loop candidates: %d, %d", &i, &ind_max);
     return true;
 }
 

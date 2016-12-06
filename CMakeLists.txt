@@ -74,9 +74,9 @@ add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 target_link_libraries(${PROJECT_NAME} ${LINKED_LIBS})
 
 # Build ERL Visualiser
-# add_executable(VisualiseERL ${TESTING_SOURCES} ${ERL_FILES})
-# target_compile_definitions(VisualiseERL PRIVATE OnlyCamera=1)
-# target_link_libraries(VisualiseERL ${LINKED_LIBS})
+add_executable(VisualiseERL ${TESTING_SOURCES} ${ERL_FILES})
+target_compile_definitions(VisualiseERL PRIVATE OnlyCamera=1)
+target_link_libraries(VisualiseERL ${LINKED_LIBS})
 
 # Build UnitTestg2o
 # add_executable(TestG2O ${TESTING_SOURCES} ${UNITTESTG2O_FILES})

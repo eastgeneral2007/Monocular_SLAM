@@ -9,12 +9,12 @@
 //
 // @Yu
 
-//  #define DEBUG_CameraPoseEstimator_VisualizeGoodFeatures
-//    #define DEBUG_CamercmakaPoseEstimator_SanityCheck
-//    #define DEBUG_CameraPoseEstimator_VisualizeMatching
-#define DEBUG_CameraPoseEstimator_VisualizeEpipolarline
-#define DEBUG_CameraPoseEstimator_ReportReprojectionError
-//#define DEBUG_FundamentalMatrix_UsingScratch
+ #define DEBUG_CameraPoseEstimator_VisualizeGoodFeatures
+// #define DEBUG_CamercmakaPoseEstimator_SanityCheck
+// #define DEBUG_CameraPoseEstimator_VisualizeMatching
+// #define DEBUG_CameraPoseEstimator_VisualizeEpipolarline
+// #define DEBUG_CameraPoseEstimator_ReportReprojectionError
+// #define DEBUG_FundamentalMatrix_UsingScratch
 #define FILTERING_WITH_F
 
 #include "CameraPoseEstimator.h"
@@ -22,8 +22,9 @@
 #include "ParamConfig.h"
 #include "SFMDebugging.h"
 #include "Util.h"
-double inlier_threshold = 0.1;
-int ransac_iters = 2000;
+double inlier_threshold = 1.0;
+int ransac_iters = 40000;
+float ValidRatio = 0.99;
 
 typedef unsigned char uchar;
 
@@ -608,7 +609,7 @@ static void computeFundamentalMatrix2(const vector<Point2d>& positions1,
 	// construct aligned position arrays
 	vector<Point2f> inputs1;
 	vector<Point2f> inputs2;
-	double maxt = 0;
+	float maxt = 0;
 	for (int i=0; i<(int)matches.size(); i++) {
 		maxt = MAX(maxt, MAX(positions1[matches[i].queryIdx].x, positions2[matches[i].trainIdx].x));
 		maxt = MAX(maxt, MAX(positions1[matches[i].queryIdx].y, positions2[matches[i].trainIdx].y));
@@ -616,16 +617,17 @@ static void computeFundamentalMatrix2(const vector<Point2d>& positions1,
 
 	for (int i=0; i<(int)matches.size(); i++) {
 		Point2f p1, p2;
-		p1.x = (double)positions1[matches[i].queryIdx].x / maxt;
-		p1.y = (double)positions1[matches[i].queryIdx].y / maxt;
-		p2.x = (double)positions1[matches[i].trainIdx].x / maxt;
-		p2.y = (double)positions1[matches[i].trainIdx].y / maxt;
+		p1.x = (float)positions1[matches[i].queryIdx].x / maxt;
+		p1.y = (float)positions1[matches[i].queryIdx].y / maxt;
+		p2.x = (float)positions1[matches[i].trainIdx].x / maxt;
+		p2.y = (float)positions1[matches[i].trainIdx].y / maxt;
 		inputs1.push_back(p1);
 		inputs2.push_back(p2);
 	}
 
 	// create constraint matrix A
 	vector<p_match> p_matched;
+	p_matched.clear();
 	for (int i=0; i<N; i++) {
 		p_match m;
 		m.u1p = inputs1[i].x;
@@ -645,7 +647,7 @@ static void computeFundamentalMatrix2(const vector<Point2d>& positions1,
 		vector<uchar> inliers_curr = getInlier(p_matched,F);
 
 		// update model if we are better
-		if (inliers_curr.size()>inliers.size())
+		if (inliers_curr.size()>inliers.size() && inliers_curr.size()>ValidRatio * N)
 			inliers = inliers_curr;
 	}
 	
@@ -710,7 +712,7 @@ void fundamentalMatrix(const vector<p_match> &p_matched, const vector<uchar> &ac
 	// enforce rank 2
 	TakeSVD(F,U,Vt,W);
 	//   F.svd(U,W,V);
-	W.at<double>(2,0) = 0;
+	W.at<double>(2,2) = 0;  // TOCheck: (2,0) orinally
 	F = U*Mat::diag(W)*Vt;
 }
 

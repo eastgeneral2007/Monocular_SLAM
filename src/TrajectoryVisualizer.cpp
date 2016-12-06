@@ -12,6 +12,7 @@ using namespace cv;
 //#define showGroundtruthTrajectory
 extern void printMatrix(const Mat & M, std::string matrix);
 extern void RtToWorldT(const Mat & Rt, Mat & t_res);
+//#define drawROI
 
 // Draw text on image
 void drawState(Mat & img, string msg, int row = 1) {
@@ -25,20 +26,17 @@ void drawState(Mat & img, string msg, int row = 1) {
 
 // Draw odometry map on image
 void drawOdometryMap(DataManager& data, int frameIdx, int size_p, double map_range, int row = 1) {
+    Mat img = data.frames[frameIdx].frameBuffer;
     const Scalar background_color(0,0,50);
     const Scalar loc_color(0,0,255);
     const Scalar trace_color(0,255,0);
     const int p_radius = 2;
 
     const double pixel_per_meter = double(size_p)/map_range;
-    Mat img = data.frames[frameIdx].frameBuffer;
     const int base_x = img.cols-size_p;
     const int base_y = img.rows-size_p * row;
     const Point ref_center(size_p/2+base_x, size_p/2+base_y);
     // cout << "roi:  "<< base_x << " " << base_y << " " << size_p << " " << size_p << endl;
-    
-    Mat roi(img, Rect(base_x, base_y, size_p, size_p));
-    roi = background_color;
     
     Mat t = Mat::zeros(3,1, CV_64F);
     Mat t_pre = Mat::zeros(3,1, CV_64F);
@@ -58,7 +56,12 @@ void drawOdometryMap(DataManager& data, int frameIdx, int size_p, double map_ran
 
     Point3f curr_loc( t.at<double>(0,0), t.at<double>(1,0), t.at<double>(2,0));
     Point3f prev_loc( t_pre.at<double>(0,0), t_pre.at<double>(1,0), t_pre.at<double>(2,0));
+    char str[200];
 
+#ifdef drawROI
+
+    Mat roi(img, Rect(base_x, base_y, size_p, size_p));
+    roi = background_color;
     for (int i = 0; i <= frameIdx; ++i) {
         #ifdef showGroundtruthTrajectory
         double dx = data.frames[i].RtGt.at<double>(0,3) - curr_loc.x;
@@ -94,7 +97,6 @@ void drawOdometryMap(DataManager& data, int frameIdx, int size_p, double map_ran
 
     // note of scale in the left_bottom corner
     double scale = map_range/10;
-    char str[200];
     sprintf(str, "%.1fm", (float)scale);
     putText(img, str, Point(base_x -5,  base_y + size_p - 10), CV_FONT_NORMAL, 0.4, Scalar(0, 255, 0), 1);//base_x+5,
     line( img,
@@ -108,9 +110,6 @@ void drawOdometryMap(DataManager& data, int frameIdx, int size_p, double map_ran
     double speed = norm(motion) / (data.frames[frameIdx].meta.timestamp-data.frames[frameIdx-1].meta.timestamp);
     double heading = atan2(motion.z, motion.x);
     
-    sprintf(str, "Frame %i   Timestamp=%04.03lf", frameIdx-1, data.frames[frameIdx].meta.timestamp);
-    drawState(img, str, 1);
-
     sprintf(str, "Speed = %5f m/s  Direction=%5lf", speed, heading);
     //drawState(img, str, 2);
 
@@ -119,7 +118,10 @@ void drawOdometryMap(DataManager& data, int frameIdx, int size_p, double map_ran
 
     sprintf(str, "currently at  (%.2lf, %.2lf, %.2lf)", curr_loc.x, curr_loc.y, curr_loc.z);
     drawState(img, str, 3);
-
+#endif
+    sprintf(str, "Frame %i   Timestamp=%04.03lf", frameIdx-1, data.frames[frameIdx].meta.timestamp);
+    drawState(img, str, 1);
+    
     imshow("1", img);
 
     char k = waitKey(0);

@@ -53,12 +53,13 @@ void loadImgFileList(string directory, int begin_frame, int end_frame, DataManag
     }
     sort(imgNamelist.begin(), imgNamelist.end());
 
+    int count = 0;
     for (int i=begin_frame; i<MIN(end_frame, imgNamelist.size()); i+=step){
         Frame f;
         FrameMeta& meta = f.meta;
         meta.timestamp=imgNamelist[i].meta.timestamp;
         meta.framename=imgNamelist[i].meta.framename;
-        meta.frameID=i;
+        meta.frameID=count++;
         f.frameBuffer=imread(imgNamelist[i].meta.framename, CV_LOAD_IMAGE_UNCHANGED);
         data.frames.push_back(f);
         // imshow("frame", f.frameBuffer);

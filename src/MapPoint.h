@@ -10,6 +10,7 @@
 
 #include "Common.h"
 #include "CommonCV.h"
+// #include "DataManager.h"
 
 class Frame;
 
@@ -23,7 +24,6 @@ public:
     void addObservingFrame(int frameIdx, int featureIdx);
     int getFeatureIdxFromObservingFrame(int frameIdx);
     void deleteObservingFrame(int frameIdx);
-private:
     map<int, int> observerToIndex; // map of observing Frame to the index of feature
 };
 
