@@ -8,6 +8,8 @@
 
 #include "TrajectoryVisualizer.h"
 using namespace cv;
+
+//#define showGroundtruthTrajectory
 extern void printMatrix(const Mat & M, std::string matrix);
 extern void RtToWorldT(const Mat & Rt, Mat & t_res);
 
@@ -42,24 +44,29 @@ void drawOdometryMap(DataManager& data, int frameIdx, int size_p, double map_ran
     Mat t_pre = Mat::zeros(3,1, CV_64F);
     Mat Rt = Mat::zeros(3,4, CV_64F);
     Mat Rt_pre = Mat::zeros(3,4, CV_64F);
-    // (data.frames[frameIdx].Rt).copyTo(Rt);
-    // (data.frames[frameIdx-1].Rt).copyTo(Rt_pre);
-    // RtToWorldT(Rt, t);
-    // RtToWorldT(Rt_pre, t_pre);
+
+    #ifdef showGroundtruthTrajectory
     (data.frames[frameIdx].RtGt).copyTo(Rt);
     (data.frames[frameIdx-1].RtGt).copyTo(Rt_pre);
+    #else
+    (data.frames[frameIdx].Rt).copyTo(Rt);
+    (data.frames[frameIdx-1].Rt).copyTo(Rt_pre);
+    #endif
+    
     RtToWorldT(Rt, t);
     RtToWorldT(Rt_pre, t_pre);
-    
+
     Point3f curr_loc( t.at<double>(0,0), t.at<double>(1,0), t.at<double>(2,0));
     Point3f prev_loc( t_pre.at<double>(0,0), t_pre.at<double>(1,0), t_pre.at<double>(2,0));
 
-    /*
     for (int i = 0; i <= frameIdx; ++i) {
-        // double dx = data.frames[i].Rt.at<double>(0,3) - curr_loc.x;
-        // double dz = data.frames[i].Rt.at<double>(2,3) - curr_loc.z;
+        #ifdef showGroundtruthTrajectory
         double dx = data.frames[i].RtGt.at<double>(0,3) - curr_loc.x;
         double dz = data.frames[i].RtGt.at<double>(1,3) - curr_loc.y;
+        #else
+        double dx = data.frames[i].Rt.at<double>(0,3) - curr_loc.x;
+        double dz = data.frames[i].Rt.at<double>(1,3) - curr_loc.y;
+        #endif
         if (abs(dx) < map_range/2 && abs(dz) < map_range/2)
         {
             Point center;
@@ -69,12 +76,10 @@ void drawOdometryMap(DataManager& data, int frameIdx, int size_p, double map_ran
             circle( img, center, p_radius, trace_color, -1);
         }
     }
-    */
 
     circle( img, ref_center, p_radius+1, loc_color, -1);
 
-    // Mat curr_pose = data.frames[frameIdx].Rt;
-    Mat curr_pose = data.frames[frameIdx].RtGt;
+    Mat curr_pose = Rt;
     Mat forward = Mat::zeros(4,1,curr_pose.type());
     forward.at<double>(2) = map_range/3;
     forward.at<double>(3) = 1;

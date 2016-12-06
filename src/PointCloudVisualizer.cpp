@@ -28,7 +28,7 @@ typedef boost::shared_ptr<pcl::visualization::PCLVisualizer> VisPtr;
 //#define OnlyTrajectory                // don't show point cloud
 
 #define drawCameraPyramid
-//#define PlotAllFrames             // To accumulate or show single frame
+#define PlotAllFrames             // To accumulate or show single frame
 
 double depth_density_ratio = 0.05;   // depth map downsampling ratio [0, 1]:   0 no points,  1 original
 
@@ -93,9 +93,10 @@ void PointCloudVisualizer::process(DataManager& data, int frameIdx)
     if (data.mapPoints.size()>0)
         MapPointsToCloudRGB(viewer, data, frameIdx, cloudMapPoints);
     if (data.frames[frameIdx].depthBuffer.rows)
-        //DepthToCloudRGB_VOPose(viewer, data, frameIdx, cloudDepthPoints);
+        DepthToCloudRGB_VOPose(viewer, data, frameIdx, cloudDepthPoints);
     #ifdef ShowCameraTrajectory
-    CamPosToCloudRGBVO(viewer, data, frameIdx, cloudCamTrajectoryVO);        // without ground truth R|t
+    if (data.frames[frameIdx].Rt.rows)
+        CamPosToCloudRGBVO(viewer, data, frameIdx, cloudCamTrajectoryVO);        // without ground truth R|t
     #endif
     #endif
     #endif
@@ -104,9 +105,10 @@ void PointCloudVisualizer::process(DataManager& data, int frameIdx)
     #ifndef OnlyTrajectory
     #ifdef ShowGroundTruth
     if (data.frames[frameIdx].depthBuffer.rows)
-        //DepthToCloudRGB_GTPose(viewer, data, frameIdx, cloudMapPoints);            // with ground truth depth map
+        DepthToCloudRGB_GTPose(viewer, data, frameIdx, cloudMapPoints);            // with ground truth depth map
     #ifdef ShowCameraTrajectory
-    CamPosToCloudRGBGT(viewer, data, frameIdx, cloudCamTrajectoryGT);     // with ground truth R|t
+    if (data.frames[frameIdx].RtGt.rows)
+        CamPosToCloudRGBGT(viewer, data, frameIdx, cloudCamTrajectoryGT);     // with ground truth R|t
     #endif
     #endif
     #endif
@@ -115,10 +117,12 @@ void PointCloudVisualizer::process(DataManager& data, int frameIdx)
     // Temple dataset
     #ifdef OnlyTrajectory
     #ifdef ShowOrbSlam
-    CamPosToCloudRGBVO(viewer, data, frameIdx, cloudCamTrajectoryVO);        // without ground truth R|t
+    if (data.frames[frameIdx].Rt.rows)
+        CamPosToCloudRGBVO(viewer, data, frameIdx, cloudCamTrajectoryVO);        // without ground truth R|t
     #endif
     #ifdef ShowGroundTruth
-    CamPosToCloudRGBGT(viewer, data, frameIdx, cloudCamTrajectoryGT);     // with ground truth R|t
+    if (data.frames[frameIdx].RtGt.rows)
+        CamPosToCloudRGBGT(viewer, data, frameIdx, cloudCamTrajectoryGT);     // with ground truth R|t
     #endif
     #endif
 

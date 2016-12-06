@@ -13,8 +13,9 @@
 //    #define DEBUG_CamercmakaPoseEstimator_SanityCheck
 //    #define DEBUG_CameraPoseEstimator_VisualizeMatching
 #define DEBUG_CameraPoseEstimator_VisualizeEpipolarline
-
 #define DEBUG_CameraPoseEstimator_ReportReprojectionError
+//#define DEBUG_FundamentalMatrix_UsingScratch
+#define FILTERING_WITH_F
 
 #include "CameraPoseEstimator.h"
 #include "CommonMath.h"
@@ -23,6 +24,8 @@
 #include "Util.h"
 double inlier_threshold = 0.1;
 int ransac_iters = 2000;
+
+typedef unsigned char uchar;
 
 // structure for storing matches
 struct p_match {
@@ -47,9 +50,8 @@ static void computeFundamentalMatrix2(const vector<Point2d>& positions1,
 									 vector<Point2d>& inlierPositions1,
 									 vector<Point2d>& inlierPositions2,
 									 Mat& F,
-									 vector<int>& status);
+									 vector<uchar>& status);
 
-static vector<int> getInlier (vector<p_match> &p_matched, Mat &F);
 
 static double computeReprojectionError(const Point3d& pts3d, const Point2d& pts2d,
 									   const Mat& Rt, const Mat& K)
@@ -281,12 +283,14 @@ void CameraPoseEstimator::initialPoseEstimation(DataManager& data, int frameIdx)
 	Mat F;
 	vector<Point2d> goodPositions1;
 	vector<Point2d> goodPositions2;
-	// vector<unsigned char> status;
-	// computeFundamentalMatrix(positions1, positions2, matches, goodPositions1, goodPositions2, F, status);
-	// F.convertTo(F, CV_64F);
-	vector<int> status;
+	
+	vector<unsigned char> status;
+	#ifdef DEBUG_FundamentalMatrix_UsingScratch
 	computeFundamentalMatrix2(positions1, positions2, matches, goodPositions1, goodPositions2, F, status);
-
+	#else
+	computeFundamentalMatrix(positions1, positions2, matches, goodPositions1, goodPositions2, F, status);
+	F.convertTo(F, CV_64F);
+	#endif
 #ifdef DEBUG_CameraPoseEstimator_VisualizeMatching
 	vector<DMatch> selectedMatches;
 	for (int i=0; i<(int)status.size(); i++) {
@@ -377,7 +381,6 @@ void CameraPoseEstimator::initialPoseEstimation(DataManager& data, int frameIdx)
  * This routine is used for pose estimation for the rest all
  * frames, except the first two frames.
  */
-#define FILTERING_WITH_F
 void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 {
 	// the number of frames to traverse back to find 3d-2d correspondences and 
@@ -410,8 +413,11 @@ void CameraPoseEstimator::pnpPoseEstimation(DataManager& data, int frameIdx)
 		cout << rawMatches.size() << endl;
 		vector<Point2d> tmp0, tmp1; Mat tmp2;
 		vector<unsigned char> status;
-		computeFundamentalMatrix(curFeatures.positions, preFeatures.positions, 
-								 rawMatches, tmp0, tmp1, tmp2, status);
+		#ifdef DEBUG_FundamentalMatrix_UsingScratch
+		computeFundamentalMatrix2(curFeatures.positions, preFeatures.positions, rawMatches, tmp0, tmp1, tmp2, status);
+		#else
+		computeFundamentalMatrix(curFeatures.positions, preFeatures.positions, rawMatches, tmp0, tmp1, tmp2, status);
+		#endif
 		int count0 = 0;
 		for(int j=0; j<status.size(); j++) {
 			if (status[j]) rawMatches[count0++] = rawMatches[j];
@@ -554,7 +560,7 @@ static void computeFundamentalMatrix(const vector<Point2d>& positions1,
 		inputs1.push_back(positions1[matches[i].queryIdx]);
 		inputs2.push_back(positions2[matches[i].trainIdx]);
 	}
-
+	
 	// fundamental matrix estimation using eight point algorithm with RANSAC
 	F = findFundamentalMat(inputs1, inputs2, CV_FM_RANSAC, MAX_DISTANCE, CONFIDENCE, status);
 
@@ -585,9 +591,9 @@ static void computeFundamentalMatrix(const vector<Point2d>& positions1,
 
 ////////////////////////////////// estimate F //////////////////////////////////
 
-void fundamentalMatrix(const vector<p_match> &p_matched, const vector<int> &active, Mat &F);
-vector<int> getRandomSample(int N,int num);
-static vector<int> getInlier (vector<p_match> &p_matched, Mat &F);
+void fundamentalMatrix(const vector<p_match> &p_matched, const vector<uchar> &active, Mat &F);
+vector<uchar> getRandomSample(int N,int num);
+static vector<uchar> getInlier (vector<p_match> &p_matched, Mat &F);
 
 static void computeFundamentalMatrix2(const vector<Point2d>& positions1,
 									 const vector<Point2d>& positions2,
@@ -595,7 +601,7 @@ static void computeFundamentalMatrix2(const vector<Point2d>& positions1,
 									 vector<Point2d>& inlierPositions1,
 									 vector<Point2d>& inlierPositions2,
 									 Mat& F,
-									 vector<int>& inliers)
+									 vector<unsigned char>& status)
 {  	
 	// number of active p_matched
 	int N = (int)matches.size();
@@ -630,36 +636,33 @@ static void computeFundamentalMatrix2(const vector<Point2d>& positions1,
 	}
 
 	// initial RANSAC estimate of F
+	vector<unsigned char> inliers;
 	inliers.clear();
 	for (int k=0;k<ransac_iters;k++) {
+		// draw random sample set	
+		vector<uchar> active = getRandomSample(N,8);
+		fundamentalMatrix(p_matched, active, F);
+		vector<uchar> inliers_curr = getInlier(p_matched,F);
 
-    // draw random sample set	
-	vector<int> active = getRandomSample(N,8);
-	fundamentalMatrix(p_matched, active, F);
-	vector<int> inliers_curr = getInlier(p_matched,F);
-
-    // update model if we are better
-	if (inliers_curr.size()>inliers.size())
-		inliers = inliers_curr;
+		// update model if we are better
+		if (inliers_curr.size()>inliers.size())
+			inliers = inliers_curr;
 	}
 	
-
+	// are there enough inliers?
+	assert(inliers.size()>10 && "Not enough inliers when estimating F & RANSAC. ");
+	
 	// construct aligned inlier position arrays
 	inlierPositions1.clear();
 	inlierPositions2.clear();
+	status.clear();
+	status.resize(N, 0);
 	for(int i = 0; i < inliers.size(); i++) {
-		if (inliers[i]) {
-			inlierPositions1.push_back(inputs1[inliers[i]]);
-			inlierPositions2.push_back(inputs2[inliers[i]]);
-		}
+		status[inliers[i]]=1;
+		inlierPositions1.push_back(inputs1[inliers[i]]);
+		inlierPositions2.push_back(inputs2[inliers[i]]);
 	}
-
-	// are there enough inliers?
-	if (inliers.size()<10){
-		cout <<"Not enough inliers when estimating F & RANSAC. "<<endl;
-		return;
-	}
-  
+	
 	// refine F using all inliers
 	fundamentalMatrix(p_matched, inliers, F); 
 	double times[3][3] = {{1.0/maxt,0,0},{0,1.0/maxt,0},{0,0,1.0}};
@@ -668,7 +671,7 @@ static void computeFundamentalMatrix2(const vector<Point2d>& positions1,
 	res.copyTo(F);
 }
 
-void fundamentalMatrix(const vector<p_match> &p_matched, const vector<int> &active, Mat &F)
+void fundamentalMatrix(const vector<p_match> &p_matched, const vector<uchar> &active, Mat &F)
 {
 	int N = active.size();
 	Mat A(N,9, CV_64F);
@@ -711,7 +714,7 @@ void fundamentalMatrix(const vector<p_match> &p_matched, const vector<int> &acti
 	F = U*Mat::diag(W)*Vt;
 }
 
-vector<int> getInlier (vector<p_match> &p_matched, Mat &F) {
+vector<uchar> getInlier (vector<p_match> &p_matched, Mat &F) {
   // extract fundamental matrix
   double f00 = F.at<double>(0,0); double f01 = F.at<double>(0,1); double f02 = F.at<double>(0,2);
   double f10 = F.at<double>(1,0); double f11 = F.at<double>(1,1); double f12 = F.at<double>(1,2);
@@ -724,10 +727,10 @@ vector<int> getInlier (vector<p_match> &p_matched, Mat &F) {
   double Ftx2u,Ftx2v;
   
   // vector with inliers
-  vector<int> inliers;
+  vector<uchar> inliers;
   
   // for all matches do
-  for (int i=0; i<(int)p_matched.size(); i++) {
+  for (int i=0; i<p_matched.size(); i++) {
 
     // extract matches
     u1 = p_matched[i].u1p;
@@ -747,26 +750,26 @@ vector<int> getInlier (vector<p_match> &p_matched, Mat &F) {
     // x2'*F*x1
     x2tFx1 = u2*Fx1u+v2*Fx1v+Fx1w;
     
-    // sampson distance
-    double d = x2tFx1*x2tFx1 / (Fx1u*Fx1u+Fx1v*Fx1v+Ftx2u*Ftx2u+Ftx2v*Ftx2v);
-    #ifdef DEBUG_CameraPoseEstimator_VisualizeEpipolarline
+	// sampson distance
+	double d = x2tFx1*x2tFx1 / (Fx1u*Fx1u+Fx1v*Fx1v+Ftx2u*Ftx2u+Ftx2v*Ftx2v);
+	#ifdef DEBUG_CameraPoseEstimator_VisualizeEpipolarline
 	//cout << fabs(d)<< "   ";
 	#endif
-    // check threshold
-    if (fabs(d) < inlier_threshold)
-      inliers.push_back(i);
-  }
+	// check threshold
+	if (fabs(d) < inlier_threshold)
+		inliers.push_back(i);
+}
 
-  // return set of all inliers
-  return inliers;
+// return set of all inliers
+return inliers;
 }
 
 
-vector<int> getRandomSample(int N,int num) {
+vector<uchar> getRandomSample(int N,int num) {
 
   // init sample and totalset
-  vector<int> sample;
-  vector<int> totalset;
+  vector<uchar> sample;
+  vector<uchar> totalset;
   
   // create vector containing all indices
   for (int i=0; i<N; i++)
@@ -775,9 +778,9 @@ vector<int> getRandomSample(int N,int num) {
   // add num indices to current sample
   sample.clear();
   for (int i=0; i<num; i++) {
-    int j = rand()%totalset.size();
-    sample.push_back(totalset[j]);
-    totalset.erase(totalset.begin()+j);
+	int j = rand()%totalset.size();
+	sample.push_back(totalset[j]);
+	totalset.erase(totalset.begin()+j);
   }
   
   // return sample
