@@ -10,9 +10,9 @@
 // @Yu
 
 //  #define DEBUG_CameraPoseEstimator_VisualizeGoodFeatures
-   #define DEBUG_CameraPoseEstimator_SanityCheck
-   #define DEBUG_CameraPoseEstimator_VisualizeMatching
-// #define DEBUG_CameraPoseEstimator_VisualizeEpipolarline
+//    #define DEBUG_CameraPoseEstimator_SanityCheck
+//    #define DEBUG_CameraPoseEstimator_VisualizeMatching
+#define DEBUG_CameraPoseEstimator_VisualizeEpipolarline
 
 #define DEBUG_CameraPoseEstimator_ReportReprojectionError
 
@@ -21,7 +21,7 @@
 #include "ParamConfig.h"
 #include "SFMDebugging.h"
 #include "Util.h"
-double inlier_threshold = 0.00001;
+double inlier_threshold = 0.1;
 int ransac_iters = 2000;
 
 // structure for storing matches
@@ -702,7 +702,7 @@ void fundamentalMatrix(const vector<p_match> &p_matched, const vector<int> &acti
 	F.at<double>(2,0) = V.at<double>(6,8);
 	F.at<double>(2,1) = V.at<double>(7,8);
 	F.at<double>(2,2) = V.at<double>(8,8);
-	printMatrix(F,"F");
+	// printMatrix(F,"F");
 
 	// enforce rank 2
 	TakeSVD(F,U,Vt,W);
@@ -749,7 +749,9 @@ vector<int> getInlier (vector<p_match> &p_matched, Mat &F) {
     
     // sampson distance
     double d = x2tFx1*x2tFx1 / (Fx1u*Fx1u+Fx1v*Fx1v+Ftx2u*Ftx2u+Ftx2v*Ftx2v);
-    
+    #ifdef DEBUG_CameraPoseEstimator_VisualizeEpipolarline
+	// cout << fabs(d)<< "   ";
+	#endif
     // check threshold
     if (fabs(d) < inlier_threshold)
       inliers.push_back(i);
