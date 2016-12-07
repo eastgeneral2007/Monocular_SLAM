@@ -58,16 +58,16 @@ int main(int argc, char **argv) {
         dm.mapPoints = this_stamp_mappoints;
 #ifdef DEBUG_LOG        
         cout << "this timestamp mapPoints size:" << dm.mapPoints.size() << endl;
-#endif        
-        
-        // process
-		ORBSLAMComparator.process(dm, i);
-
-        // display the corrsponding image
+#endif  
+        // load the frame meta 
         cv::Mat this_im = imread(image_path + "/" + frame_id_to_imgfile[dm.frames[i].meta.frameID], CV_LOAD_IMAGE_COLOR);
 #ifdef DEBUG_LOG     
         cout << "image path:" << image_path + "/" + frame_id_to_imgfile[dm.frames[i].meta.frameID] << endl;
-#endif        
+#endif  
+        dm.frames[i].frameBuffer = this_im;
+        
+        // process
+	ORBSLAMComparator.process(dm, i);
         imshow("im for current time stamp", this_im);
         waitKey(10);
 	}
