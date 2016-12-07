@@ -24,17 +24,18 @@ typedef boost::shared_ptr<pcl::visualization::PCLVisualizer> VisPtr;
 ///////////////////////////////////////////// Visualization Options /////////////////////////////////////////////
 #define ShowOrbSlam               // Show ORB SLAM point cloud 
 // #define ShowGroundTruth             // Show ground truth point cloud 
-#define ShowCameraTrajectory        // When visualizing point cloud, show trajectory & cameras
 //#define OnlyTrajectory                // don't show point cloud
 
+//default
+#define ShowCameraTrajectory        // When visualizing point cloud, show trajectory & cameras
 #define drawCameraPyramid
-#define showTrajectoryLines
-
+// #define showTrajectoryLines
+#define displayRGBPointCloud
 #define PlotAllFrames             // To accumulate or show single frame
-
-double depth_density_ratio = 0.05;   // depth map downsampling ratio [0, 1]:   0 no points,  1 original
-
 // #define ShowMeshReconstruction      // To perform mesh reconstruction
+
+double depth_density_ratio = 0.2;   // depth map downsampling ratio [0, 1]:   0 no points,  1 original
+
 int displayForm = 2;             // Mesh representation: 0 for Wireframe(standard),  1 for surface, 2 for Points
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -237,7 +238,7 @@ void WorldRtToRT(const Mat& Rt, Mat &Rt_res)
 
 void DrawCamera(VisPtr viewer, const Mat &Rt, int frameIdx, string name)
 {
-    double dist = 1;
+    double dist = 0.3;
     double scale = 0.5;
     Mat x = Mat::zeros(3,1,CV_64F); x.at<double>(0,0) = dist; 
     Mat y = Mat::zeros(3,1,CV_64F); y.at<double>(1,0) = dist; 
@@ -331,7 +332,7 @@ static void CamPosToCloudRGBVO(VisPtr viewer, DataManager& data, int frameIdx, C
         // cout << pre_point.x<<" "<<pre_point.y<<" "<<pre_point.z<<endl;
         // cout << basic_point.x<<" "<<basic_point.y<<" "<<basic_point.z<<endl;
         #ifdef showTrajectoryLines
-        viewer->addLine(pre_point, basic_point, 40, 20, 20, to_string(frameIdx), 0);
+        viewer->addLine(pre_point, basic_point, 255, 255, 255, to_string(frameIdx), 0);
         #endif
     }
     
@@ -360,7 +361,7 @@ static void CamPosToCloudRGBGT(VisPtr viewer, DataManager& data, int frameIdx, C
         // cout << pre_point_gt.x<<" "<<pre_point_gt.y<<" "<<pre_point_gt.z<<endl;
         // cout << basic_point_gt.x<<" "<<basic_point_gt.y<<" "<<basic_point_gt.z<<endl;
         #ifdef showTrajectoryLines
-        viewer->addLine(pre_point_gt, basic_point_gt, 20, 40, 20, "gt"+to_string(frameIdx), 0);
+        viewer->addLine(pre_point_gt, basic_point_gt, 255, 255, 255, "gt"+to_string(frameIdx), 0);
         #endif
     }
     // cout<<frameIdx-1 << ")\tCamera est. pos: \t"<<basic_point.x<<","<<basic_point.y<<","<<basic_point.z;
@@ -399,20 +400,19 @@ vector<int> getPixelRGBAvg(DataManager & data, int i)
     int rsum=0;
     for (map<int,int>::iterator i = observerToIndex.begin(); i != observerToIndex.end(); ++i)
     {
-        // cout <<"idx:" << i->first << "    second,  "<<i->second<<endl;
-        // double idx = p.getFeatureIdxFromObservingFrame(i->first-1);
-        // Features &f= data.frames[i->first].features;
-        // cout << f.positions.size()<<endl;
-        // f.positions[i->second];
-        double x = data.frames[i->first].features.positions[i->second].x;
-        // cout <<data.frames[i->first].features.positions[i->second].x<<endl;
-        double y = data.frames[i->first].features.positions[i->second].y;
-        double b = data.frames[i->first].frameBuffer.at<Vec3b>(y,x)(0);
-        double g = data.frames[i->first].frameBuffer.at<Vec3b>(y,x)(1);
-        double r = data.frames[i->first].frameBuffer.at<Vec3b>(y,x)(2);
-        rgb[0]+=r;
-        rgb[1]+=g;
-        rgb[2]+=b;
+        if (data.frames[i->first].features.positions.size()>=i->second){
+            double x = data.frames[i->first].features.positions[i->second].x;
+            double y = data.frames[i->first].features.positions[i->second].y;
+            double b = data.frames[i->first].frameBuffer.at<Vec3b>(y,x)(0);
+            double g = data.frames[i->first].frameBuffer.at<Vec3b>(y,x)(1);
+            double r = data.frames[i->first].frameBuffer.at<Vec3b>(y,x)(2);
+            rgb[0]+=r;
+            rgb[1]+=g;
+            rgb[2]+=b;
+            //cout<<" color "<<endl;
+        }else{
+            // #undef displayRGBPointCloud
+        }
     }
     rgb[0]/=observerToIndex.size();
     rgb[1]/=observerToIndex.size();
@@ -449,10 +449,16 @@ static void MapPointsToCloudRGB(VisPtr viewer, DataManager& data, int frameIdx, 
         basic_point.x = point.worldPosition.x;
         basic_point.y = point.worldPosition.y;
         basic_point.z = point.worldPosition.z;
+        #ifdef displayRGBPointCloud
         vector<int> rgb = getPixelRGBAvg(data, i); 
-        basic_point.r = rgb[0];  //30;
-        basic_point.g = rgb[1];  //30;
-        basic_point.b = rgb[2];  //220;
+        basic_point.r = rgb[0]; 
+        basic_point.g = rgb[1];  
+        basic_point.b = rgb[2]; 
+        #else
+        basic_point.r = 30;
+        basic_point.g = 30;
+        basic_point.b = 220;
+        #endif
         // cout<<"pos: "<<basic_point.x<<","<<basic_point.y<<","<<basic_point.z<<endl;
         basic_cloud_ptr->points.push_back(basic_point);
     }
