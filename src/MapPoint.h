@@ -15,6 +15,7 @@ class Frame;
 
 class MapPoint {
 friend class Util;
+// friend class PointCloudVisualizer; TODO: study the behavior of friend class
 public:
     MapPoint(Point3d worldPosition, int id): worldPosition(worldPosition), id(id) {}
     long unsigned int id; // identifier
@@ -23,7 +24,6 @@ public:
     void addObservingFrame(int frameIdx, int featureIdx);
     int getFeatureIdxFromObservingFrame(int frameIdx);
     void deleteObservingFrame(int frameIdx);
-private:
     map<int, int> observerToIndex; // map of observing Frame to the index of feature
 };
 

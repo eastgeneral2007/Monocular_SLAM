@@ -384,7 +384,7 @@ MapPoint* Util::findMapPointById(vector<MapPoint> &map_points, int target_id) {
 vector<Frame> Util::loadFrames(string frame_filename) {
     vector<Frame> frames;
 	ifstream frame_instream(frame_filename); // ios::binary | ios::ate will just read the size for tellg() to work!
-    cout << "frame_filename:" << frame_filename << endl;
+    // cout << "frame_filename:" << frame_filename << endl;
 	string nextline;
 	string token;
     while ( !frame_instream.eof()) {
@@ -394,7 +394,7 @@ vector<Frame> Util::loadFrames(string frame_filename) {
         
         // read, id, Rt
         getline(frame_instream, nextline);
-        cout << "line read in:\n" << nextline << endl;
+        // cout << "line read in:\n" << nextline << endl;
         if (nextline.length() == 0) {
             continue;
         }
@@ -421,7 +421,7 @@ vector<Frame> Util::loadFrames(string frame_filename) {
         is_with_space >> Rt.at<double>(2, 3);
         f.Rt = Rt;
 
-        cout << "f.Rt:\n" << f.Rt<< endl;
+        // cout << "f.Rt:\n" << f.Rt<< endl;
         // read features
         while(getline(frame_instream, nextline) && nextline != "") {
             ostringstream out; // hold space dilimited input

@@ -71,8 +71,8 @@ set(TESTING_SOURCES ${SOURCE_FILES})
 list (REMOVE_ITEM TESTING_SOURCES "${PROJECT_SOURCE_DIR}/src/main.cpp")
 
 # Build Targets
-add_executable(${PROJECT_NAME} ${SOURCE_FILES})
-target_link_libraries(${PROJECT_NAME} ${LINKED_LIBS})
+# add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+# target_link_libraries(${PROJECT_NAME} ${LINKED_LIBS})
 
 # Build ERL Visualiser
 # add_executable(VisualiseERL ${TESTING_SOURCES} ${ERL_FILES})
@@ -80,8 +80,8 @@ target_link_libraries(${PROJECT_NAME} ${LINKED_LIBS})
 # target_link_libraries(VisualiseERL ${LINKED_LIBS})
 
 # Build Compare ORB SLAM
-# add_executable(CompareORBSLAM ${TESTING_SOURCES} ${ORBSLAM_FILES})
-# target_link_libraries(CompareORBSLAM ${LINKED_LIBS})
+add_executable(CompareORBSLAM ${TESTING_SOURCES} ${ORBSLAM_FILES})
+target_link_libraries(CompareORBSLAM ${LINKED_LIBS})
 
 # Build UnitTestg2o
 # add_executable(TestG2O ${TESTING_SOURCES} ${UNITTESTG2O_FILES})
