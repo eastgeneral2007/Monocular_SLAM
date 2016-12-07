@@ -17,4 +17,11 @@ const int POSE_BA_ITER = 10;
 // tuned number of iterations for full BA
 const int FULL_BA_ITER = 15;
 
+// parameter for SURF detector 
+const int SURF_MIN_HESSIAN = 400;
+
+// Fundamental matrix parameters
+const double MAX_DISTANCE = 3.;
+const double CONFIDENCE = 0.85;
+
 #endif
