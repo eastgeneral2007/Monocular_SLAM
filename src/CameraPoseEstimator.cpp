@@ -550,8 +550,6 @@ static void computeFundamentalMatrix(const vector<Point2d>& positions1,
 									 Mat& F,
 									 vector<unsigned char>& status)
 {
-	static const double MAX_DISTANCE = 3.;
-	static const double CONFIDENCE = 0.99;
 
 	// construct aligned position arrays
 	vector<Point2d> inputs1;
