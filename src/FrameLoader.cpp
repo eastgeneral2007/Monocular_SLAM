@@ -190,6 +190,29 @@ void loadCameraIntrinsics_TUM1(DataManager& data) {
     data.camera_intrinsics = camera_intrinsics.clone();
 }
 
+// Minitaur
+void loadCameraIntrinsics_Minitaur(DataManager& data) {
+    // TODO: implement a proper loader in the future
+    static double fx = 712.9293;
+    static double fy = 683.2151;
+    static double cx = 913.5476;
+    static double cy = 550.1913;
+
+    Mat camera_intrinsics;
+    camera_intrinsics = Mat::zeros(3, 3, CV_64F);
+    camera_intrinsics.at<double>(0,0) = fx;
+    camera_intrinsics.at<double>(0,2) = cx;
+    camera_intrinsics.at<double>(1,1) = fy;
+    camera_intrinsics.at<double>(1,2) = cy;
+    camera_intrinsics.at<double>(2,2) = 1.f;
+
+    for(int i=0; i<data.frames.size(); i++) {
+        data.frames[i].K = camera_intrinsics.clone();
+    }
+
+    data.camera_intrinsics = camera_intrinsics.clone();
+}
+
 // TUM f1/f3
 void loadCameraIntrinsics_kinect(DataManager& data) {
 
@@ -270,5 +293,9 @@ void FrameLoader::load(DataManager& data) {
     else if (directory.find("temple")!=string::npos) {
         loadImgFileList(directory+"/", begin_frame, end_frame, data, step);
         loadCameraIntrinsicsAndGTRT_middleBury(data, directory+"/temple_par.txt", begin_frame, end_frame, step);
+    }
+    else if (directory.find("MinitaurHoppingVideo") != string::npos) {
+        loadImgFileList(directory, begin_frame, end_frame, data, step);
+        loadCameraIntrinsics_Minitaur(data);
     }
 }
