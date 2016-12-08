@@ -1,5 +1,5 @@
 //
-// ORBFeatureExtractor.cpp
+// FeatureExtractor.cpp
 //
 // Extract ORB feature of each frame and feed 
 // the extracted feature descriptor and position
@@ -8,9 +8,9 @@
 // @Yu
 
 #include "Common.h"
-#include "ORBFeatureExtractor.h"
+#include "FeatureExtractor.h"
 
-void ORBFeatureExtractor::process(DataManager& data, int frameIdx) {
+void FeatureExtractor::process(DataManager& data, int frameIdx) {
 	Frame &frame = data.frames[frameIdx];
 	RawBuffer frameBuffer = frame.frameBuffer;
 	std::vector<cv::KeyPoint> keypoints;
@@ -30,7 +30,7 @@ void ORBFeatureExtractor::process(DataManager& data, int frameIdx) {
 	// waitKey(40);
 }
 
-bool ORBFeatureExtractor::validationCheck(DataManager& data, int frameIdx) {
+bool FeatureExtractor::validationCheck(DataManager& data, int frameIdx) {
 	return true;
 }
 

@@ -1,5 +1,5 @@
 //
-// ORBFeatureExtractor.h
+// FeatureExtractor.h
 //
 // Extract ORB feature of each frame and feed 
 // the extracted feature descriptor and position
@@ -7,16 +7,16 @@
 //
 // @Yu
 
-#ifndef ORBFEATUREEXTRACTOR_H
-#define ORBFEATUREEXTRACTOR_H
+#ifndef FeatureExtractor_H
+#define FeatureExtractor_H
 
 #include "CommonCV.h"
 #include "ProcessingNode.h"
 
-class ORBFeatureExtractor: public ProcessingNode
+class FeatureExtractor: public ProcessingNode
 {
 public:
-	ORBFeatureExtractor():ProcessingNode("ORBFeatureExtractor") {}
+	FeatureExtractor():ProcessingNode("FeatureExtractor") {}
 	virtual void process(DataManager& data, int frameIdx) override;
 	virtual bool validationCheck(DataManager& data, int frameIdx) override;
 private:
