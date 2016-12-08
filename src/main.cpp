@@ -15,7 +15,7 @@
 #include "DataManager.h"
 #include "Pipeline.h"
 #include "FrameLoader.h"
-#include "ORBFeatureExtractor.h"
+#include "FeatureExtractor.h"
 #include "CameraPoseEstimator.h"
 #include "PointCloudVisualizer.h"
 #include "Optimiser.h"
@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
 
 	// Pipeline Initialization
 	ProcessingPipeline ORBSlam;
-	ORBSlam.addStage(new ORBFeatureExtractor());
+	ORBSlam.addStage(new FeatureExtractor());
 	ORBSlam.addStage(new CameraPoseEstimator());
 	// ORBSlam.addStage(new Optimiser()); // this is for full BA, to turn on pose BA, uncomment off invokation in pnpPoseEstimation()
 	ORBSlam.addStage(new TrajectoryVisualizer());
