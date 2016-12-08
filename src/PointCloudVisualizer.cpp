@@ -237,7 +237,7 @@ void WorldRtToRT(const Mat& Rt, Mat &Rt_res)
 
 void DrawCamera(VisPtr viewer, const Mat &Rt, int frameIdx, string name)
 {
-    double dist = 0.1;
+    double dist = 0.08;
     double scale = 0.3;
     Mat x = Mat::zeros(3,1,CV_64F); x.at<double>(0,0) = dist; 
     Mat y = Mat::zeros(3,1,CV_64F); y.at<double>(1,0) = dist; 
@@ -291,10 +291,10 @@ void DrawCamera(VisPtr viewer, const Mat &Rt, int frameIdx, string name)
     viewer->addLine(l4, l1, 0, 255, 0,  "l4"+name+to_string(frameIdx), 0);
 
     // square pyramid lines
-    // viewer->addLine(l1, z_axis, 0, 255, 0,  "z1"+name+to_string(frameIdx), 0);
-    // viewer->addLine(l2, z_axis, 0, 255, 0,  "z2"+name+to_string(frameIdx), 0);
-    // viewer->addLine(l3, z_axis, 0, 255, 0,  "z3"+name+to_string(frameIdx), 0);
-    // viewer->addLine(l4, z_axis, 0, 255, 0,  "z4"+name+to_string(frameIdx), 0);
+    viewer->addLine(l1, z_axis, 0, 255, 0,  "z1"+name+to_string(frameIdx), 0);
+    viewer->addLine(l2, z_axis, 0, 255, 0,  "z2"+name+to_string(frameIdx), 0);
+    viewer->addLine(l3, z_axis, 0, 255, 0,  "z3"+name+to_string(frameIdx), 0);
+    viewer->addLine(l4, z_axis, 0, 255, 0,  "z4"+name+to_string(frameIdx), 0);
     #endif
 }
 
@@ -330,7 +330,7 @@ static void CamPosToCloudRGBVO(VisPtr viewer, DataManager& data, int frameIdx, C
         }
         // cout << pre_point.x<<" "<<pre_point.y<<" "<<pre_point.z<<endl;
         // cout << basic_point.x<<" "<<basic_point.y<<" "<<basic_point.z<<endl;
-        viewer->addLine(pre_point, basic_point, 250, 20, 20, to_string(frameIdx), 0);
+        // viewer->addLine(pre_point, basic_point, 250, 20, 20, to_string(frameIdx), 0);
     }
     
     (data.frames[frameIdx].Rt).copyTo(Rt_world);
@@ -357,7 +357,7 @@ static void CamPosToCloudRGBGT(VisPtr viewer, DataManager& data, int frameIdx, C
         }
         // cout << pre_point_gt.x<<" "<<pre_point_gt.y<<" "<<pre_point_gt.z<<endl;
         // cout << basic_point_gt.x<<" "<<basic_point_gt.y<<" "<<basic_point_gt.z<<endl;
-        viewer->addLine(pre_point_gt, basic_point_gt, 20, 250, 20, "gt"+to_string(frameIdx), 0);
+        // viewer->addLine(pre_point_gt, basic_point_gt, 20, 250, 20, "gt"+to_string(frameIdx), 0);
     }
     // cout<<frameIdx-1 << ")\tCamera est. pos: \t"<<basic_point.x<<","<<basic_point.y<<","<<basic_point.z;
     // cout<< "\tVS\tGT: \t"<<basic_point_gt.x<<","<<basic_point_gt.y<<","<<basic_point_gt.z<<endl;
