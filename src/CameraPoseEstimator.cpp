@@ -248,8 +248,10 @@ static void registerNewMapPoint(DataManager& data, Point3d pos,
 static Mat concatenateRts(Mat Rt1, Mat Rt2) {
 	Mat Rt1_4x4 = Mat::zeros(4,4,CV_64F);
 	Rt1.copyTo(Rt1_4x4.rowRange(0,3).colRange(0,4));
+	Rt1_4x4.at<double>(3,3) = 1.0;
 	Mat Rt2_4x4 = Mat::zeros(4,4,CV_64F);
 	Rt2.copyTo(Rt2_4x4.rowRange(0,3).colRange(0,4));
+	Rt2_4x4.at<double>(3,3) = 1.0;
 	Mat result = Rt1_4x4 * Rt2_4x4;
 	return result.rowRange(0,3).colRange(0,4);
 }
@@ -353,7 +355,7 @@ void CameraPoseEstimator::initialPoseEstimation(DataManager& data, int frameIdx)
 		}
 	}
 	curFrame.Rt = Rts[bestRtIndex];
-	curFrame.Rt = concatenateRts(preFrame.Rt, curFrame.Rt);
+	curFrame.Rt = concatenateRts(curFrame.Rt, preFrame.Rt);
 
 #ifdef DEBUG_CameraPoseEstimator_ReportReprojectionError
 	double reprojErr = 0;
