@@ -10,6 +10,30 @@ using namespace std;
 using namespace cv;
 
 #define DEBUG_LOG
+
+/**
+Input required format:
+
+<input_frame_directory>
+|-- rgb/: folder containing actual images
+|-- rgb.txt: txt file containing <frame number, image_path>
+
+<input_info_directory>
+|-- out_info.txt: txt file of <frame id, frame_image_path>
+|-- frames_ORB.csv: csv file of <frame id, vectorised pose (3x4 row vectorised into 12x1)>
+|-- ORB_{i}_frames.csv: csv files of all keyframes at timstamp of frame i
+        Format: Repeat: row of <frame id, vectorised pose (3x4 row vectorised into 12x1)>
+                        rows of <2d_feature_u, 2d_feature_v, 2d_feature_scale>
+                        <space>
+                        rows of associated mappoint id (-1 if not associated with any)
+                        <space>
+|-- ORB_{i}_mappoint.csv: csv files of mappoints at timestamp of frame i
+        Format: Repeat: row of <mapppoint id, X, Y, Z>
+                        rows of <observing frame id, corresponding feature idx in that frame>
+                        <space>
+*/
+
+
 int main(int argc, char **argv) {
     DataManager dm;
     cv::Mat intrinsics_TUM1 = (Mat_<double>(3,3) << 517.306408,  0,   318.643040,

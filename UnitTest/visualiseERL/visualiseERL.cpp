@@ -11,6 +11,19 @@ using namespace cv;
 
 #define DEBUG_LOG
 
+/**
+Input required format:
+
+<input_frame_directory>
+|-- rgb/: folder containing actual images
+|-- rgb.txt: txt file containing <frame number, image_path>
+
+<input_info_directory>
+|-- ERL_frames.csv: csv file of <id, vectorised pose (3x4 row vectorised into 12x1)>
+|-- out_info.txt: txt file of <frame id, frame_image_path>
+
+*/
+
 int main(int argc, char **argv) {
      
     DataManager dm;
