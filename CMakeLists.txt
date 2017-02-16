@@ -83,7 +83,7 @@ list (REMOVE_ITEM TESTING_SOURCES "${PROJECT_SOURCE_DIR}/src/main.cpp")
 
 # Build Visualiser for Externel SLAM methods
 add_executable(VisualiseExternel ${TESTING_SOURCES} ${EXTERNAL_VISUALISE_FILES})
-target_compile_definitions(VisualiseExternel PRIVATE OnlyCamera=1)
+target_compile_definitions(VisualiseExternel PRIVATE OnlyTrajectory=1)
 target_link_libraries(VisualiseExternel ${LINKED_LIBS})
 
 # Build Compare ORB SLAM
