@@ -23,10 +23,10 @@ typedef boost::shared_ptr<pcl::visualization::PCLVisualizer> VisPtr;
 
 
 ///////////////////////////////////////////// Visualization Options /////////////////////////////////////////////
-#define ShowOrbSlam               // Show ORB SLAM point cloud 
+// #define ShowSlamPointCloud               // Show Monocular SLAM point cloud 
 // #define ShowGroundTruth             // Show ground truth point cloud 
 #define ShowCameraTrajectory        // When visualizing point cloud, show trajectory & cameras
-#define OnlyTrajectory                // don't show point cloud
+// #define OnlyTrajectory                // don't show point cloud
 
 #define drawCameraPyramid
 #define PlotAllFrames             // To accumulate or show single frame
@@ -93,8 +93,9 @@ void PointCloudVisualizer::process(DataManager& data, int frameIdx)
         frameIdx = data.frames.size() - 1;
     }
 
+    // plot camrea position + 3D point clound
     #ifndef OnlyTrajectory
-    #ifdef ShowOrbSlam
+    #ifdef ShowSlamPointCloud
     if (data.mapPoints.size()>0)
         MapPointsToCloudRGB(viewer, data, frameIdx, cloudMapPoints);
     if (!data.frames[frameIdx].depthBuffer.empty())
@@ -107,6 +108,7 @@ void PointCloudVisualizer::process(DataManager& data, int frameIdx)
     #endif
 
 
+    // plot ground truth related
     #ifndef OnlyTrajectory
     #ifdef ShowGroundTruth
     if (data.frames[frameIdx].depthBuffer.rows)
@@ -119,12 +121,10 @@ void PointCloudVisualizer::process(DataManager& data, int frameIdx)
     #endif
 
 
-    // Temple dataset
+    // plot only camrea position
     #ifdef OnlyTrajectory
-    #ifdef ShowOrbSlam
     if (data.frames[frameIdx].Rt.rows)
         CamPosToCloudRGBVO(viewer, data, frameIdx, cloudCamTrajectoryVO);        // without ground truth R|t
-    #endif
     #ifdef ShowGroundTruth
     if (data.frames[frameIdx].RtGt.rows)
         CamPosToCloudRGBGT(viewer, data, frameIdx, cloudCamTrajectoryGT);     // with ground truth R|t
@@ -132,6 +132,7 @@ void PointCloudVisualizer::process(DataManager& data, int frameIdx)
     #endif
 
 
+    // plot mesh
     #ifdef ShowMeshReconstruction
     // TODO:: Mesh reconstruction from point clouds
     if (cloudMapPoints->points.size()>20)
@@ -237,8 +238,8 @@ void WorldRtToRT(const Mat& Rt, Mat &Rt_res)
 
 void DrawCamera(VisPtr viewer, const Mat &Rt, int frameIdx, string name)
 {
-    double dist = 0.08;
-    double scale = 0.3;
+    double dist = 0.5;
+    double scale = 1.0;
     Mat x = Mat::zeros(3,1,CV_64F); x.at<double>(0,0) = dist; 
     Mat y = Mat::zeros(3,1,CV_64F); y.at<double>(1,0) = dist; 
     Mat z = Mat::zeros(3,1,CV_64F); z.at<double>(2,0) = dist; 

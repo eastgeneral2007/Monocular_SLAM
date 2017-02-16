@@ -66,7 +66,7 @@ file(GLOB_RECURSE UNITTESTG2O_FILES "UnitTest/g2o/*.cpp" "UnitTest/g2o/*.h")
 file(GLOB_RECURSE UNITTESTPCL_FILES "UnitTest/pcl/*.cpp" "UnitTest/pcl/*.h")
 file(GLOB_RECURSE ERL_FILES "UnitTest/visualiseERL/*.cpp" "UnitTest/visualiseERL/*.h")
 file(GLOB_RECURSE ORBSLAM_FILES "UnitTest/compareORBSLAM/*.cpp" "UnitTest/compareORBSLAM/*.h")
-file(GLOB_RECURSE EXTERNAL_VISUALISE_FILES "UnitTest/visualiseExternerl/*")
+file(GLOB_RECURSE EXTERNAL_VISUALISE_FILES "UnitTest/VisualiseExternel/*")
 
 # file(GLOB_RECURSE UNITTESTCGAL_FILES "UnitTest/cgal/*.cpp" "UnitTest/cgal/*.h")
 set(TESTING_SOURCES ${SOURCE_FILES})
@@ -78,7 +78,7 @@ list (REMOVE_ITEM TESTING_SOURCES "${PROJECT_SOURCE_DIR}/src/main.cpp")
 
 # Build ERL Visualiser
 # add_executable(VisualiseERL ${TESTING_SOURCES} ${ERL_FILES})
-# target_compile_definitions(VisualiseERL PRIVATE OnlyCamera=1)
+# target_compile_definitions(VisualiseERL PRIVATE OnlyTrajectory=1)
 # target_link_libraries(VisualiseERL ${LINKED_LIBS})
 
 # Build Visualiser for Externel SLAM methods

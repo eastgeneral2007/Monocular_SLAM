@@ -9,7 +9,7 @@
 using namespace std;
 using namespace cv;
 
-// #define DEBUG_LOG
+#define DEBUG_LOG
 
 /**
 Input required format:
@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
     DataManager dm;
     cv::Mat intrinsics_f1 = (Mat_<double>(3,3) << 315.5,  0,   376,
     0,   315.5,   240,
-    0,   0,    1); // svo sin data set
+    0,   0,    1); // SVO sin data set
 
     // load the .csv frames
     if (argc < 3) {
@@ -69,6 +69,6 @@ int main(int argc, char **argv) {
         // visualise the actual frame image at this timestamp
         cv::Mat this_stamp_im = imread(image_path + "/" + frame_id_to_imgfile[dm.frames[i].meta.frameID], CV_LOAD_IMAGE_COLOR);
         imshow("this_stamp_im", this_stamp_im);
-        waitKey(10);
+        waitKey(0);
 	}
 }
