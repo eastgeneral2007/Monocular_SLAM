@@ -26,7 +26,7 @@ typedef boost::shared_ptr<pcl::visualization::PCLVisualizer> VisPtr;
 #define ShowOrbSlam               // Show ORB SLAM point cloud 
 // #define ShowGroundTruth             // Show ground truth point cloud 
 #define ShowCameraTrajectory        // When visualizing point cloud, show trajectory & cameras
-//#define OnlyTrajectory                // don't show point cloud
+#define OnlyTrajectory                // don't show point cloud
 
 #define drawCameraPyramid
 #define PlotAllFrames             // To accumulate or show single frame
